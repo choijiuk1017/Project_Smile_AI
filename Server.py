@@ -230,8 +230,26 @@ def analyze_image_with_llava(image_bytes):
     return scene
 
 
-# 장면 설명과 가장 가까운 RAG 문서 검색
-def retrieve_best_rag(scene_text, top_k=3):
+# 현재 구역에 맞는 RAG 문서만 검색
+def retrieve_best_rag(scene_text, area_id=None, top_k=3):
+    candidate_indices = []
+
+    for idx, item in enumerate(rag_data):
+        if area_id is None or area_id == "Unknown":
+            candidate_indices.append(idx)
+        elif item.get("area_id", "") == area_id:
+            candidate_indices.append(idx)
+
+    if not candidate_indices:
+        candidate_indices = list(range(len(rag_data)))
+
+    candidate_texts = [rag_data[idx]["scene"] for idx in candidate_indices]
+
+    candidate_embeddings = retrieval_model.encode(
+        candidate_texts,
+        normalize_embeddings=True,
+    )
+
     query_embedding = retrieval_model.encode(
         [scene_text],
         normalize_embeddings=True,
@@ -239,16 +257,17 @@ def retrieve_best_rag(scene_text, top_k=3):
 
     scores = cosine_similarity(
         query_embedding,
-        rag_scene_embeddings,
+        candidate_embeddings,
     )[0]
 
-    top_indices = np.argsort(scores)[::-1][:top_k]
+    top_local_indices = np.argsort(scores)[::-1][:top_k]
 
     results = []
 
-    for idx in top_indices:
-        item = rag_data[idx]
-        score = float(scores[idx])
+    for local_idx in top_local_indices:
+        rag_idx = candidate_indices[local_idx]
+        item = rag_data[rag_idx]
+        score = float(scores[local_idx])
 
         results.append(
             {
@@ -326,17 +345,16 @@ def build_rag_context(rag_results):
 
 # AI Director가 힌트 강도 결정
 def decide_hint_level(hint_count, area_stay_time):
-    if hint_count <= 1 and area_stay_time < 60:
-        return 1
+    if hint_count >= 10:
+        return 3
 
-    if hint_count <= 3 and area_stay_time < 180:
+    if hint_count >= 5:
         return 2
 
-    return 3
-
+    return 1
 
 # Gemma 입력 프롬프트 생성
-def build_gemma_prompt(scene, rag, reference_answer, reasoning_policy=None):
+def build_gemma_prompt(scene, rag, reference_answer, reasoning_policy=None, hint_count=1):
     if reasoning_policy is None or str(reasoning_policy).strip() == "":
         reasoning_policy = DEFAULT_REASONING_POLICY
 
@@ -355,7 +373,9 @@ def build_gemma_prompt(scene, rag, reference_answer, reasoning_policy=None):
 [추론 규칙]
 {reasoning_policy}
 
-보이는 단서를 바탕으로 짧게 추론하는 주인공 독백 한 문장으로 바꿔라.<end_of_turn>
+보이는 단서를 바탕으로 짧게 추론하는 주인공 독백 한 문장으로 바꿔라.
+이전 힌트와 같은 문장을 반복하지 말고, 같은 의미를 다른 표현으로 말하라.
+현재 힌트 요청 횟수는 {hint_count}회다.<end_of_turn>
 <start_of_turn>model
 """
 
@@ -401,7 +421,7 @@ def clean_hint(text):
 
 
 # Gemma-LoRA를 이용한 최종 힌트 생성
-def generate_hint(scene_text, rag_results, hint_level=1):
+def generate_hint(scene_text, rag_results, hint_level=1, hint_count=1):
     primary_rag = select_primary_rag(rag_results)
     rag_context = build_rag_context(rag_results)
 
@@ -415,12 +435,16 @@ def generate_hint(scene_text, rag_results, hint_level=1):
 
     if primary_rag.get("scene_type") == "no_clue":
         return selected_reference_answer, primary_rag, rag_context
-
+    
+    if hint_level >= 3:
+        return f"확실한 단서다. {primary_rag['rag']}", primary_rag, rag_context
+    
     prompt = build_gemma_prompt(
         scene=scene_text,
         rag=primary_rag["rag"],
         reference_answer=selected_reference_answer,
         reasoning_policy=primary_rag.get("reasoning_policy", DEFAULT_REASONING_POLICY),
+        hint_count=hint_count,
     )
 
     inputs = tokenizer(
@@ -431,15 +455,15 @@ def generate_hint(scene_text, rag_results, hint_level=1):
 
     with torch.no_grad():
         output = gemma_model.generate(
-            **inputs,
-            max_new_tokens=80,
-            do_sample=True,
-            temperature=0.7,
-            top_p=0.9,
-            repetition_penalty=1.03,
-            pad_token_id=tokenizer.eos_token_id,
-            eos_token_id=tokenizer.eos_token_id,
-        )
+    **inputs,
+    max_new_tokens=80,
+    do_sample=True,
+    temperature=0.75,
+    top_p=0.92,
+    repetition_penalty=1.08,
+    pad_token_id=tokenizer.eos_token_id,
+    eos_token_id=tokenizer.eos_token_id,
+)
 
     generated_ids = output[0][inputs["input_ids"].shape[-1]:]
 
@@ -455,6 +479,109 @@ def generate_hint(scene_text, rag_results, hint_level=1):
 
     return hint, primary_rag, rag_context
 
+# Gemma를 이용한 힌트 적절성 평가
+def evaluate_hint_with_ai(scene_text, rag, hint, hint_level):
+    evaluation_prompt = f"""<start_of_turn>user
+너는 게임 힌트 검수자다.
+다음 힌트가 출력해도 되는 힌트인지 판단하라.
+
+[장면]
+{scene_text}
+
+[RAG 정보]
+{rag}
+
+[힌트 레벨]
+{hint_level}
+
+[생성된 힌트]
+{hint}
+
+PASS 기준:
+- 힌트가 RAG 정보와 의미상 크게 맞으면 PASS
+- RAG의 표현을 다르게 말한 정도면 PASS
+- 공포 게임 주인공 독백처럼 자연스러우면 PASS
+- 힌트 레벨 1, 2에서는 정답을 직접 말하지 않으면 PASS
+
+FAIL 기준:
+- RAG에 없는 물체, 위치, 해결 방법을 새로 만들면 FAIL
+- RAG에 없는 '몬스터', '괴물', '실험체'를 말하면 FAIL
+- '~하자', '~해야 한다', '~찾아야 한다', '~확인해야 한다' 같은 행동 지시가 있으면 FAIL
+- 문장이 한국어로 어색해서 의미가 이상하면 FAIL
+- 힌트가 RAG와 반대 의미면 FAIL
+
+주의:
+- 너무 엄격하게 판단하지 마라.
+- 애매하면 PASS로 판단하라.
+- 출력은 반드시 PASS 또는 FAIL 한 단어만 써라.<end_of_turn>
+<start_of_turn>model
+"""
+
+    inputs = tokenizer(
+        evaluation_prompt,
+        return_tensors="pt",
+        add_special_tokens=False,
+    ).to(gemma_model.device)
+
+    with torch.no_grad():
+        output = gemma_model.generate(
+            **inputs,
+            max_new_tokens=10,
+            do_sample=False,
+            pad_token_id=tokenizer.eos_token_id,
+            eos_token_id=tokenizer.eos_token_id,
+        )
+
+    generated_ids = output[0][inputs["input_ids"].shape[-1]:]
+
+    result = tokenizer.decode(
+        generated_ids,
+        skip_special_tokens=True,
+    ).strip().upper()
+
+    if "FAIL" in result:
+        return False, "FAIL"
+
+    return True, "PASS"
+
+# LangGraph 노드: 생성된 힌트 검수
+def node_evaluate_hint(state: HintGraphState) -> dict:
+    print("[LangGraph] node_evaluate_hint 실행")
+
+    primary_rag = state["primary_rag"]
+    hint = state["hint"]
+    hint_level = state["hint_level"]
+
+    if hint_level >= 3:
+        return {
+            "hint_passed": True,
+            "evaluation_reason": "Level 3 uses RAG directly",
+        }
+
+    passed, reason = evaluate_hint_with_ai(
+        scene_text=state["scene"],
+        rag=primary_rag.get("rag", ""),
+        hint=hint,
+        hint_level=hint_level,
+    )
+
+    if passed:
+        return {
+            "hint_passed": True,
+            "evaluation_reason": reason,
+        }
+
+    hint_by_level = primary_rag.get("hint_by_level", {})
+    fallback_hint = hint_by_level.get(
+        str(hint_level),
+        primary_rag.get("reference_answer", "지금 보이는 것만으로는 확실한 단서를 찾기 어렵다.")
+    )
+
+    return {
+        "hint": fallback_hint,
+        "hint_passed": False,
+        "evaluation_reason": reason,
+    }
 
 class HintGraphState(TypedDict):
     area_id: str
@@ -470,6 +597,8 @@ class HintGraphState(TypedDict):
     objective_id: str
     last_interaction: str
     hint_level: int
+    hint_passed: bool
+    evaluation_reason: str
 
 
 # LangGraph 노드: 이미지 분석
@@ -488,8 +617,9 @@ def node_retrieve_rag(state: HintGraphState) -> dict:
     print("[LangGraph] node_retrieve_rag 실행")
 
     rag_results = retrieve_best_rag(
-        scene_text=state["scene"],
-        top_k=3,
+    scene_text=state["scene"],
+    area_id=state["area_id"],
+    top_k=3,
     )
 
     return {
@@ -519,6 +649,7 @@ def node_generate_hint(state: HintGraphState) -> dict:
         scene_text=state["scene"],
         rag_results=state["rag_results"],
         hint_level=state["hint_level"],
+        hint_count=state["hint_count"],
     )
 
     return {
@@ -536,12 +667,14 @@ def build_hint_graph():
     graph.add_node("retrieve_rag", node_retrieve_rag)
     graph.add_node("decide_hint_level", node_decide_hint_level)
     graph.add_node("generate_hint", node_generate_hint)
+    graph.add_node("evaluate_hint", node_evaluate_hint)
 
     graph.add_edge(START, "analyze_image")
     graph.add_edge("analyze_image", "retrieve_rag")
     graph.add_edge("retrieve_rag", "decide_hint_level")
     graph.add_edge("decide_hint_level", "generate_hint")
-    graph.add_edge("generate_hint", END)
+    graph.add_edge("generate_hint", "evaluate_hint")
+    graph.add_edge("evaluate_hint", END)
 
     return graph.compile()
 
@@ -582,6 +715,8 @@ def predict():
             "objective_id": objective_id,
             "last_interaction": last_interaction,
             "hint_level": 1,
+            "hint_passed": False,
+            "evaluation_reason": "",
         })
 
         scene = graph_result["scene"]
@@ -605,6 +740,8 @@ def predict():
         print("RAG:", primary_rag.get("rag", ""))
         print("REFERENCE_ANSWER:", primary_rag.get("reference_answer", ""))
         print("HINT:", hint)
+        print("HINT_PASSED:", graph_result["hint_passed"])
+        print("EVALUATION_REASON:", graph_result["evaluation_reason"])
 
         return jsonify(
             {
@@ -629,6 +766,8 @@ def predict():
                     "decide_hint_level",
                     "generate_hint",
                 ],
+                "hint_passed": graph_result["hint_passed"],
+                "evaluation_reason": graph_result["evaluation_reason"],
             }
         )
 
@@ -648,11 +787,13 @@ def test_rag():
 
         scene = data["scene"]
 
+        area_id = data.get("area_id", None)
+
         rag_results = retrieve_best_rag(
             scene_text=scene,
+            area_id=area_id,
             top_k=3,
         )
-
         primary_rag = select_primary_rag(rag_results)
 
         return jsonify(
@@ -686,8 +827,11 @@ def test_graph():
         hint_count = int(data.get("hint_count", 1))
         area_stay_time = float(data.get("area_stay_time", 0))
 
+        area_id = data.get("area_id", None)
+
         rag_results = retrieve_best_rag(
             scene_text=scene,
+            area_id=area_id,
             top_k=3,
         )
 
