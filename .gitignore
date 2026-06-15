@@ -179,5 +179,35 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# AI model / cache
 gemma_hint_lora/
+models/
+huggingface_cache/
+.cache/
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.onnx
+
+# Generated training data / outputs
+checkpoint-*/
+runs/
+wandb/
+trainer_state.json
+training_args.bin
+
+# Local test images / captures
+captures/
+screenshots/
+*.png
+*.jpg
+*.jpeg
+*.webp
+
+# Local server files
+*.log
+.env
 
