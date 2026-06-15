@@ -685,5 +685,455 @@
     "type": "hint_only",
     "hint_level_policy": "increase_with_hint_count"
   }
+},
+{
+  "id": "labzone_red_corridor_corpses",
+  "area_id": "LabZone",
+  "scene_type": "red_corridor_corpses",
+  "search_scenes": [
+    "A red-lit corridor contains bodies lying on the floor.",
+    "A dark hallway is illuminated by red light with corpses nearby.",
+    "Several bodies are visible in a red-lit corridor.",
+    "A corridor with red lighting and blood stains is visible.",
+    "A hallway contains bodies and red emergency lighting.",
+    "A red corridor has motionless figures lying on the ground."
+  ],
+  "spoiler_level": 1,
+  "director_tags": ["labzone", "red_corridor", "corpses", "horror_clue"],
+  "required_context": {
+    "area_id": "LabZone",
+    "min_hint_count": 0,
+    "max_hint_count": 5,
+    "required_inventory": [],
+    "missing_inventory": [],
+    "required_interactions": []
+  },
+  "facts": [
+    "메인 홀의 문을 열고 들어오면 붉은 빛의 복도가 나온다.",
+    "복도에는 시체들과 핏자국이 있다.",
+    "이 구역에서는 더 위험한 사건이 벌어진 것처럼 보인다."
+  ],
+  "hint_by_level": {
+    "1": "붉은 빛이 복도를 더 불길하게 만든다.",
+    "2": "복도에 쓰러진 시체들을 보면 이곳도 안전한 장소는 아닌 것 같다.",
+    "3": "이 복도는 연구실로 이어지는 구역이고, 주변의 시체들은 그 안에서 무언가가 벌어졌다는 흔적처럼 보인다."
+  },
+  "hint_examples": [
+    "붉은 빛에 시체까지... 이곳도 평범한 복도는 아닌 것 같다.",
+    "이 복도는 연구실과 관련된 사건의 흔적인 것 같다."
+  ],
+  "director_action": {
+    "type": "hint_only",
+    "hint_level_policy": "increase_with_hint_count"
+  }
+},
+{
+  "id": "labzone_lit_bathroom",
+  "area_id": "LabZone",
+  "scene_type": "lit_bathroom",
+  "search_scenes": [
+    "A bathroom with lights on is visible on the left side of a corridor.",
+    "A lit restroom is visible in a dark hallway.",
+    "A bathroom entrance is illuminated in the corridor.",
+    "A bright bathroom can be seen beside a dark corridor.",
+    "A restroom with lights on is visible near the hallway.",
+    "A lit bathroom doorway is visible on the left."
+  ],
+  "spoiler_level": 1,
+  "director_tags": ["labzone", "bathroom", "lit_area", "possible_clue_area"],
+  "required_context": {
+    "area_id": "LabZone",
+    "min_hint_count": 0,
+    "max_hint_count": 5,
+    "required_inventory": [],
+    "missing_inventory": ["Fuse"],
+    "required_interactions": []
+  },
+  "facts": [
+    "붉은 복도를 지나면 왼쪽에 불이 켜진 화장실이 있다.",
+    "어두운 구역 안에서 화장실은 눈에 띄는 장소다.",
+    "화장실 안에는 퓨즈와 관련된 단서가 있을 수 있다."
+  ],
+  "hint_by_level": {
+    "1": "왼쪽 화장실만 불이 켜져 있는 게 신경 쓰인다.",
+    "2": "어두운 복도에서 저렇게 밝은 곳이라면 뭔가 남아 있을 가능성이 있다.",
+    "3": "화장실 안에는 퓨즈 박스와 여분의 퓨즈가 있을 가능성이 높다."
+  },
+  "hint_examples": [
+    "저 화장실만 불이 켜져 있다... 그냥 지나치긴 어렵다.",
+    "밝은 화장실 안에 뭔가 남아 있을지도 모른다."
+  ],
+  "director_action": {
+    "type": "hint_only",
+    "hint_level_policy": "increase_with_hint_count"
+  }
+},
+{
+  "id": "labzone_bathroom_fusebox",
+  "area_id": "LabZone",
+  "scene_type": "bathroom_fusebox",
+  "search_scenes": [
+    "An open fuse box is visible inside a bathroom.",
+    "A bathroom contains an open electrical fuse box.",
+    "A fuse box with all slots filled is visible in a restroom.",
+    "An electrical panel is open in a bathroom.",
+    "A restroom has an open fuse box on the wall.",
+    "A fuse panel inside the bathroom appears already filled."
+  ],
+  "spoiler_level": 1,
+  "director_tags": ["labzone", "bathroom", "fusebox", "fuse_puzzle"],
+  "required_context": {
+    "area_id": "LabZone",
+    "min_hint_count": 0,
+    "max_hint_count": 5,
+    "required_inventory": [],
+    "missing_inventory": ["Fuse"],
+    "required_interactions": []
+  },
+  "facts": [
+    "화장실 안에는 열린 퓨즈 박스가 있다.",
+    "화장실 퓨즈 박스는 이미 퓨즈가 모두 채워져 있다.",
+    "화장실에는 여분의 퓨즈가 남아 있다."
+  ],
+  "hint_by_level": {
+    "1": "화장실의 퓨즈 박스가 이미 열려 있다.",
+    "2": "퓨즈 박스가 다 채워져 있는데도 여분이 남아 있다는 점이 이상하다.",
+    "3": "이곳의 남는 퓨즈는 다른 곳의 부족한 퓨즈 박스와 연결될 가능성이 높다."
+  },
+  "hint_examples": [
+    "퓨즈 박스는 이미 채워져 있는데... 왜 여분이 남아 있는 거지?",
+    "이 남는 퓨즈는 다른 곳에서 필요할지도 모른다."
+  ],
+  "director_action": {
+    "type": "hint_only",
+    "hint_level_policy": "increase_with_hint_count"
+  }
+},
+{
+  "id": "labzone_spare_fuse",
+  "area_id": "LabZone",
+  "scene_type": "spare_fuse",
+  "search_scenes": [
+    "A spare fuse is visible near a fuse box.",
+    "A small fuse is placed inside a bathroom.",
+    "An extra fuse is lying near an electrical panel.",
+    "A fuse-like object is visible beside an open fuse box.",
+    "A spare electrical fuse is visible in the restroom.",
+    "A small cylindrical fuse is lying near the fuse panel."
+  ],
+  "spoiler_level": 1,
+  "director_tags": ["labzone", "key_item", "fuse", "fuse_puzzle"],
+  "required_context": {
+    "area_id": "LabZone",
+    "min_hint_count": 0,
+    "max_hint_count": 5,
+    "required_inventory": [],
+    "missing_inventory": ["Fuse"],
+    "required_interactions": []
+  },
+  "facts": [
+    "화장실에는 여분의 퓨즈가 있다.",
+    "다른 퓨즈 박스에는 퓨즈가 부족하다.",
+    "여분의 퓨즈는 어두운 복도 옆 퓨즈 박스와 관련될 수 있다."
+  ],
+  "hint_by_level": {
+    "1": "이 퓨즈는 그냥 남겨진 물건처럼 보이지 않는다.",
+    "2": "여분의 퓨즈라면 다른 곳의 전원을 되살리는 데 쓰일지도 모른다.",
+    "3": "어두운 복도 옆의 부족한 퓨즈 박스에는 이 퓨즈가 필요할 가능성이 높다."
+  },
+  "hint_examples": [
+    "여분의 퓨즈가 남아 있다... 다른 곳에 필요할지도 모른다.",
+    "이 퓨즈는 어두운 구역의 전원과 관련이 있을 것 같다."
+  ],
+  "director_action": {
+    "type": "hint_only",
+    "hint_level_policy": "increase_with_hint_count"
+  }
+},
+{
+  "id": "labzone_dark_corridor_switch_fusebox",
+  "area_id": "LabZone",
+  "scene_type": "dark_corridor_switch_fusebox",
+  "search_scenes": [
+    "A dark corridor is visible with a switch and fuse box nearby.",
+    "A dark hallway has a switch and closed fuse box on the wall.",
+    "A fuse box and light switch are visible beside a dark corridor.",
+    "A closed electrical panel is visible next to a switch.",
+    "A switch and fuse panel are located near a dark passage.",
+    "A dark corridor has an electrical box and switch nearby."
+  ],
+  "spoiler_level": 1,
+  "director_tags": ["labzone", "dark_corridor", "switch", "fusebox", "fuse_puzzle"],
+  "required_context": {
+    "area_id": "LabZone",
+    "min_hint_count": 0,
+    "max_hint_count": 5,
+    "required_inventory": [],
+    "missing_inventory": ["Fuse"],
+    "required_interactions": []
+  },
+  "facts": [
+    "화장실을 지나면 왼쪽에 어두운 복도가 있다.",
+    "어두운 복도 옆에는 스위치와 퓨즈 박스가 있다.",
+    "이 퓨즈 박스는 처음에는 닫혀 있고 퓨즈가 부족하다."
+  ],
+  "hint_by_level": {
+    "1": "어두운 복도 옆의 스위치와 박스가 신경 쓰인다.",
+    "2": "스위치가 있어도 퓨즈가 부족하면 불이 들어오지 않을 것 같다.",
+    "3": "이 닫힌 퓨즈 박스에는 화장실에서 본 여분의 퓨즈가 필요할 가능성이 높다."
+  },
+  "hint_examples": [
+    "스위치 옆의 퓨즈 박스가 수상하다... 전원이 부족한 건가?",
+    "이 어두운 복도는 퓨즈 박스와 관련이 있을 것 같다."
+  ],
+  "director_action": {
+    "type": "hint_only",
+    "hint_level_policy": "increase_with_hint_count"
+  }
+},
+{
+  "id": "labzone_closed_fusebox_missing_fuse",
+  "area_id": "LabZone",
+  "scene_type": "closed_fusebox_missing_fuse",
+  "search_scenes": [
+    "A closed fuse box is visible near a switch.",
+    "A fuse box appears closed beside a dark hallway.",
+    "An electrical fuse box is located near a light switch.",
+    "A closed electrical panel is visible on the wall.",
+    "A wall-mounted fuse box is visible near a dark corridor.",
+    "A fuse panel near a switch appears to be missing a fuse."
+  ],
+  "spoiler_level": 1,
+  "director_tags": ["labzone", "fusebox", "missing_fuse", "fuse_puzzle"],
+  "required_context": {
+    "area_id": "LabZone",
+    "min_hint_count": 0,
+    "max_hint_count": 5,
+    "required_inventory": [],
+    "missing_inventory": ["Fuse"],
+    "required_interactions": []
+  },
+  "facts": [
+    "어두운 복도 옆의 퓨즈 박스는 처음에는 닫혀 있다.",
+    "이 퓨즈 박스는 퓨즈가 부족한 상태다.",
+    "부족한 퓨즈를 채우면 복도 전원과 연결될 수 있다."
+  ],
+  "hint_by_level": {
+    "1": "닫힌 퓨즈 박스가 이 어두운 복도와 관련 있어 보인다.",
+    "2": "퓨즈가 부족하다면 스위치를 눌러도 제대로 작동하지 않을 것 같다.",
+    "3": "이 박스에 부족한 퓨즈를 채워야 어두운 복도 쪽 문제가 해결될 가능성이 높다."
+  },
+  "hint_examples": [
+    "닫힌 퓨즈 박스가 수상하다... 안쪽이 비어 있는 건가?",
+    "이 박스는 퓨즈가 부족한 상태일지도 모른다."
+  ],
+  "director_action": {
+    "type": "hint_only",
+    "hint_level_policy": "increase_with_hint_count"
+  }
+},
+{
+  "id": "labzone_research_entrance_corpse",
+  "area_id": "LabZone",
+  "scene_type": "research_entrance_corpse",
+  "search_scenes": [
+    "A corpse is visible near the entrance to a laboratory.",
+    "A body lies near a door leading to a research room.",
+    "A dead body is visible near a lab entrance.",
+    "A corpse is lying in front of a laboratory door.",
+    "A dark area contains a body near a research facility entrance.",
+    "A body is lying near the entrance of another room."
+  ],
+  "spoiler_level": 1,
+  "director_tags": ["labzone", "research_entrance", "corpse", "horror_clue"],
+  "required_context": {
+    "area_id": "LabZone",
+    "min_hint_count": 0,
+    "max_hint_count": 5,
+    "required_inventory": [],
+    "missing_inventory": [],
+    "required_interactions": []
+  },
+  "facts": [
+    "복도를 더 직진하면 시체가 있는 공간이 나온다.",
+    "그 공간은 연구실로 들어가는 입구와 연결된다.",
+    "연구실 입구 주변의 시체는 내부에서 벌어진 사건을 암시한다."
+  ],
+  "hint_by_level": {
+    "1": "연구실 입구 근처의 시체가 신경 쓰인다.",
+    "2": "누군가 연구실에 들어가기 전 이곳에서 쓰러진 것 같다.",
+    "3": "이 시체는 연구실 내부의 몬스터나 실험과 관련된 사건의 흔적일 가능성이 있다."
+  },
+  "hint_examples": [
+    "연구실 입구 앞에 시체가 있다... 안쪽에서 무슨 일이 있었던 거지?",
+    "이 시체는 연구실 내부와 관련된 흔적일지도 모른다."
+  ],
+  "director_action": {
+    "type": "hint_only",
+    "hint_level_policy": "increase_with_hint_count"
+  }
+},
+{
+  "id": "labzone_research_room_overview",
+  "area_id": "LabZone",
+  "scene_type": "research_room_overview",
+  "search_scenes": [
+    "A dark laboratory room contains tables and chairs.",
+    "A research room with several tables and chairs is visible.",
+    "A laboratory contains desks, chairs, and scattered objects.",
+    "A dark lab room is lit by red light and contains tables.",
+    "A room with lab equipment, tables, chairs, and dark stains is visible.",
+    "A research area contains multiple workstations and scattered debris."
+  ],
+  "spoiler_level": 1,
+  "director_tags": ["labzone", "research_room", "exploration", "clue_area"],
+  "required_context": {
+    "area_id": "LabZone",
+    "min_hint_count": 0,
+    "max_hint_count": 5,
+    "required_inventory": [],
+    "missing_inventory": ["Fuse"],
+    "required_interactions": []
+  },
+  "facts": [
+    "연구실 안에는 여러 테이블과 의자가 있다.",
+    "연구실에는 흩어진 물건과 어두운 얼룩이 보인다.",
+    "이 공간에는 퓨즈와 몬스터 정보 파일이 있을 수 있다."
+  ],
+  "hint_by_level": {
+    "1": "연구실 안은 물건들이 흩어져 있어 뭔가 남아 있을 것 같다.",
+    "2": "테이블과 의자 주변에 중요한 단서가 남아 있을 가능성이 있다.",
+    "3": "이 연구실 안에서는 퓨즈와 몬스터에 대한 정보 파일을 찾아볼 수 있을 것 같다."
+  },
+  "hint_examples": [
+    "연구실 안에 물건들이 흩어져 있다... 중요한 단서가 남아 있을지도 모른다.",
+    "테이블 주변을 보면 뭔가 연구 기록이 남아 있을 것 같다."
+  ],
+  "director_action": {
+    "type": "hint_only",
+    "hint_level_policy": "increase_with_hint_count"
+  }
+},
+{
+  "id": "labzone_lab_fuse",
+  "area_id": "LabZone",
+  "scene_type": "lab_fuse",
+  "search_scenes": [
+    "A fuse is visible on a table in the laboratory.",
+    "A small fuse is lying on a lab table.",
+    "A fuse-like object is visible among scattered lab objects.",
+    "A small electrical fuse is placed on a desk in the lab.",
+    "A fuse is visible near laboratory equipment.",
+    "A small cylindrical fuse is lying in the research room."
+  ],
+  "spoiler_level": 1,
+  "director_tags": ["labzone", "key_item", "fuse", "fuse_puzzle"],
+  "required_context": {
+    "area_id": "LabZone",
+    "min_hint_count": 0,
+    "max_hint_count": 5,
+    "required_inventory": [],
+    "missing_inventory": ["Fuse"],
+    "required_interactions": []
+  },
+  "facts": [
+    "연구실 안에는 퓨즈 하나가 있다.",
+    "이 퓨즈는 부족한 퓨즈 박스와 관련될 수 있다.",
+    "퓨즈는 어두운 복도 전원 문제를 해결하는 데 필요할 수 있다."
+  ],
+  "hint_by_level": {
+    "1": "연구실 안의 작은 퓨즈가 눈에 띈다.",
+    "2": "이 퓨즈라면 어딘가 부족한 전원을 채우는 데 쓰일지도 모른다.",
+    "3": "이 퓨즈는 어두운 복도 옆 퓨즈 박스의 빈자리를 채우는 데 필요할 가능성이 높다."
+  },
+  "hint_examples": [
+    "연구실 안에 퓨즈가 있다... 전원 문제와 관련이 있을지도 모른다.",
+    "이 퓨즈는 어두운 복도 쪽에 필요할 것 같다."
+  ],
+  "director_action": {
+    "type": "hint_only",
+    "hint_level_policy": "increase_with_hint_count"
+  }
+},
+{
+  "id": "labzone_monster_file",
+  "area_id": "LabZone",
+  "scene_type": "monster_file",
+  "search_scenes": [
+    "A file or document is visible on a lab table.",
+    "A monster information file is visible in the laboratory.",
+    "A document is placed among laboratory objects.",
+    "A research file is lying on a table in the lab.",
+    "A paper file with information is visible in a research room.",
+    "A document related to a creature or monster is visible."
+  ],
+  "spoiler_level": 1,
+  "director_tags": ["labzone", "monster_file", "lore_clue", "research_note"],
+  "required_context": {
+    "area_id": "LabZone",
+    "min_hint_count": 0,
+    "max_hint_count": 5,
+    "required_inventory": [],
+    "missing_inventory": [],
+    "required_interactions": []
+  },
+  "facts": [
+    "연구실 안에는 몬스터에 대한 정보 파일이 있다.",
+    "파일은 연구실에서 벌어진 실험이나 사건과 관련될 수 있다.",
+    "파일은 몬스터의 정체나 위험성을 암시할 수 있다."
+  ],
+  "hint_by_level": {
+    "1": "연구실 안의 파일이 신경 쓰인다.",
+    "2": "저 파일에는 이곳에서 무슨 실험이 있었는지 적혀 있을지도 모른다.",
+    "3": "이 파일은 몬스터의 정체와 연구실에서 벌어진 사건을 이해하는 핵심 단서일 가능성이 있다."
+  },
+  "hint_examples": [
+    "저 파일... 이곳에서 무슨 실험이 있었는지 적혀 있을지도 모른다.",
+    "몬스터에 대한 기록이라면 그냥 넘길 수는 없다."
+  ],
+  "director_action": {
+    "type": "hint_only",
+    "hint_level_policy": "increase_with_hint_count"
+  }
+},
+{
+  "id": "labzone_no_clue",
+  "area_id": "LabZone",
+  "scene_type": "no_clue",
+  "search_scenes": [
+    "A dark laboratory area is visible with no clear important object.",
+    "Only walls, floor, and red lighting are visible in the lab zone.",
+    "A plain dark corridor is visible with no clear clue.",
+    "A dark corner or empty wall is visible in the laboratory area.",
+    "No fuse, document, switch, fuse box, bathroom, corpse, or table is clearly visible.",
+    "The scene contains no obvious interactable object in the lab zone."
+  ],
+  "spoiler_level": 1,
+  "director_tags": ["labzone", "no_clue", "fallback"],
+  "required_context": {
+    "area_id": "LabZone",
+    "min_hint_count": 0,
+    "max_hint_count": 5,
+    "required_inventory": [],
+    "missing_inventory": [],
+    "required_interactions": []
+  },
+  "facts": [
+    "현재 LabZone 장면에서는 직접적인 단서가 확인되지 않는다.",
+    "LabZone에서는 화장실 퓨즈, 어두운 복도 옆 퓨즈 박스, 연구실 내부의 파일과 퓨즈가 주요 단서가 될 수 있다."
+  ],
+  "hint_by_level": {
+    "1": "지금 보이는 것만으로는 확실한 단서를 찾기 어렵다.",
+    "2": "이 구역에서는 화장실, 퓨즈 박스, 연구실 안쪽처럼 더 분명한 대상을 봐야 할 것 같다.",
+    "3": "화장실의 여분 퓨즈, 어두운 복도 옆 퓨즈 박스, 연구실 안의 퓨즈와 파일이 이 구역의 핵심 단서일 가능성이 높다."
+  },
+  "hint_examples": [
+    "지금 시야에는 확실한 단서가 보이지 않는다.",
+    "이 구역에는 단서가 있을 것 같지만, 지금 장면만으로는 부족하다."
+  ],
+  "director_action": {
+    "type": "hint_only",
+    "hint_level_policy": "increase_with_hint_count"
+  }
 }
 ]
