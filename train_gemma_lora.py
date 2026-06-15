@@ -12,9 +12,7 @@ MODEL_ID = "google/gemma-4-E2B-it"
 DATA_PATH = "lora_tutorial_hint_reasoning_policy.jsonl"
 OUTPUT_DIR = "gemma_hint_lora"
 
-# GPU 사용량 줄이기 위해 512보다 줄임.
-# 너무 짧아서 잘리면 448로 올리십시오.
-MAX_LENGTH = 384
+MAX_LENGTH = 448
 
 SYSTEM_PROMPT = """너는 공포 퍼즐 게임의 주인공 추론형 독백을 생성한다.
 
@@ -136,9 +134,6 @@ def main():
 
     model.config.use_cache = False
 
-    # 메모리 절약. 속도는 조금 느려질 수 있지만 VRAM 사용량은 줄어듭니다.
-    model.gradient_checkpointing_enable()
-
     lora_config = LoraConfig(
         r=16,
         lora_alpha=32,
@@ -206,7 +201,6 @@ def main():
 
     collator = CausalLMCollator(tokenizer)
 
-    # 1개 샘플로 gradient 연결만 간단히 확인.
     test_batch = collator([dataset[0]])
     test_batch = {
         k: v.to(model.device)
@@ -238,7 +232,7 @@ def main():
         per_device_train_batch_size=1,
         gradient_accumulation_steps=8,
         learning_rate=8e-5,
-        num_train_epochs=5,
+        num_train_epochs=3,
         logging_steps=1,
         save_strategy="epoch",
         save_total_limit=1,

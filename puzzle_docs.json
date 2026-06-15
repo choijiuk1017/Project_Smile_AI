@@ -1,50 +1,85 @@
 [
   {
-    "id": "tutorial_spawn_corpse",
-    "area_id": "TutorialZone",
-    "scene_type": "spawn_corpse",
-    "search_scenes": [
-      "A single person is lying on the floor in a dark room.",
-      "One human figure is lying motionless on the ground.",
-      "A person appears injured or dead on a tiled floor.",
-      "A body is lying near a door in a dimly lit room.",
-      "A figure is lying on the floor with blood splatters nearby.",
-      "A person is collapsed on the floor in a bloodstained room."
-    ],
-    "spoiler_level": 1,
-    "facts": [
-      "계단 위 복도에는 여러 구의 시체가 있다.",
-      "복도 전체에 핏자국과 쓰러진 사람들이 보인다.",
-      "복도에서 끔찍한 사건이 있었던 것처럼 보인다."
-    ],
-    "hint_examples": [
-      "저 시체는 뭐지? 무언가한테 공격받은 것 같은데...",
-      "저 사람... 그냥 쓰러진 건 아닌 것 같다."
-    ]
+  "id": "tutorial_spawn_corpse",
+  "area_id": "TutorialZone",
+  "scene_type": "spawn_corpse",
+  "search_scenes": [
+    "A single body is lying on the floor in a dark room.",
+    "One person is lying motionless on the ground.",
+    "A single humanoid figure is collapsed on the floor.",
+    "Only one body is visible near a staircase.",
+    "One injured person is lying on a tiled floor.",
+    "A single figure is lying on the floor with blood nearby.",
+    "There is one visible body in a dim room."
+  ],
+  "negative_scenes": [
+    "multiple bodies",
+    "several bodies",
+    "two or more bodies",
+    "many people",
+    "a corridor with several bodies"
+  ],
+  "spoiler_level": 1,
+  "facts": [
+    "바닥에 한 명의 사람이 쓰러져 있다.",
+    "주변에는 핏자국이 남아 있다.",
+    "단순히 넘어진 것이 아니라 공격받은 흔적으로 보인다."
+  ],
+  "hint_by_level": {
+    "1": "저 사람... 그냥 넘어진 건 아닌 것 같다.",
+    "2": "주변 핏자국을 보면 무언가에게 공격받은 흔적처럼 보인다.",
+    "3": "이곳에서 이미 누군가 공격받았고, 아직 위험이 남아 있을지도 모른다."
   },
-  {
-    "id": "tutorial_hallway_corpses",
-    "area_id": "TutorialZone",
-    "scene_type": "hallway_corpses",
-    "search_scenes": [
-      "A corridor contains several bodies lying on the floor.",
-      "Multiple human figures are lying in a hallway.",
-      "Several bodies are scattered across a corridor floor.",
-      "A dimly lit hallway contains two or more bodies.",
-      "Several people are lying on the ground in a corridor.",
-      "A hallway floor is covered with multiple motionless figures."
-    ],
-    "spoiler_level": 1,
-    "facts": [
-      "계단 위 복도에는 여러 구의 시체가 있다.",
-      "복도 전체에 핏자국과 쓰러진 사람들이 보인다.",
-      "복도에서 끔찍한 사건이 있었던 것처럼 보인다."
-    ],
-    "hint_examples": [
-      "끔찍하군... 대체 무슨 일이 있었던 거야?",
-      "복도 전체가 흔적으로 가득하다."
-    ]
+  "hint_examples": [
+    "저 시체는 뭐지? 무언가한테 공격받은 것 같은데...",
+    "저 사람... 그냥 쓰러진 건 아닌 것 같다."
+  ],
+  "director_tags": ["tutorial", "single_corpse", "horror_clue"],
+  "director_action": {
+    "type": "hint_only",
+    "hint_level_policy": "increase_with_hint_count"
+  }
+},
+{
+  "id": "tutorial_hallway_corpses",
+  "area_id": "TutorialZone",
+  "scene_type": "hallway_corpses",
+  "search_scenes": [
+    "Multiple bodies are lying on the floor in a hallway.",
+    "Several human figures are lying across a corridor.",
+    "Two or more bodies are scattered across a corridor floor.",
+    "A hallway contains many motionless people.",
+    "Several bodies are visible in a long corridor.",
+    "A corridor floor is covered with multiple bodies."
+  ],
+  "negative_scenes": [
+    "single body",
+    "one person",
+    "one figure",
+    "only one body",
+    "a single humanoid figure"
+  ],
+  "spoiler_level": 1,
+  "facts": [
+    "복도에는 여러 명의 사람이 쓰러져 있다.",
+    "복도 전체에 핏자국과 쓰러진 사람들이 보인다.",
+    "여러 사람이 동시에 피해를 입은 사건처럼 보인다."
+  ],
+  "hint_by_level": {
+    "1": "복도 전체가 심상치 않은 흔적으로 가득하다.",
+    "2": "이 정도로 여러 사람이 쓰러져 있다면 단순한 사고는 아닌 것 같다.",
+    "3": "복도에서 여러 사람이 동시에 공격받았고, 같은 위험이 아직 남아 있을지도 모른다."
   },
+  "hint_examples": [
+    "끔찍하군... 대체 무슨 일이 있었던 거야?",
+    "복도 전체가 흔적으로 가득하다."
+  ],
+  "director_tags": ["tutorial", "multiple_corpses", "horror_clue"],
+  "director_action": {
+    "type": "hint_only",
+    "hint_level_policy": "increase_with_hint_count"
+  }
+},
   {
     "id": "tutorial_locked_private_door",
     "area_id": "TutorialZone",
@@ -58,16 +93,34 @@
       "A locked-looking door with an access panel is visible."
     ],
     "spoiler_level": 1,
+    "director_tags": ["tutorial", "locked_door", "requires_keycard"],
+    "required_context": {
+      "area_id": "TutorialZone",
+      "min_hint_count": 0,
+      "max_hint_count": 5,
+      "required_inventory": [],
+      "missing_inventory": [],
+      "required_interactions": []
+    },
     "facts": [
       "문에는 PRIVATE 표시가 있다.",
       "문 옆에는 키패드 같은 장치가 있다.",
       "문은 잠긴 상태일 가능성이 높다.",
       "키패드 같은 장치는 키카드나 출입증이 필요할 수 있음을 암시한다."
     ],
+    "hint_by_level": {
+      "1": "PRIVATE라... 그냥 열 수 있는 문은 아닌 것 같다.",
+      "2": "문 옆 장치를 보면 출입을 확인하는 무언가가 필요한 것 같다.",
+      "3": "이 문은 키카드 같은 출입증과 연결되어 있을 가능성이 높다."
+    },
     "hint_examples": [
       "문이 잠긴 것 같은데... 옆에 키패드를 보면 키카드 같은 것이 필요하겠어...",
       "PRIVATE라... 그냥 열 수 있는 문은 아닌 것 같다."
-    ]
+    ],
+    "director_action": {
+      "type": "hint_only",
+      "hint_level_policy": "increase_with_hint_count"
+    }
   },
   {
     "id": "tutorial_rest_area",
@@ -82,15 +135,33 @@
       "A room contains beds and scattered debris."
     ],
     "spoiler_level": 1,
+    "director_tags": ["tutorial", "exploration", "possible_item_area"],
+    "required_context": {
+      "area_id": "TutorialZone",
+      "min_hint_count": 0,
+      "max_hint_count": 5,
+      "required_inventory": [],
+      "missing_inventory": ["Keycard"],
+      "required_interactions": []
+    },
     "facts": [
       "침대와 가구가 있는 방은 직원 휴게 공간처럼 보인다.",
       "이 방 안에는 문을 여는 데 필요한 물건이 있을 수 있다.",
       "플레이어는 방 안을 살펴볼 수 있다."
     ],
+    "hint_by_level": {
+      "1": "여긴 누군가 머물던 공간 같다... 그냥 지나치긴 어렵다.",
+      "2": "직원들이 쓰던 공간이라면 출입에 필요한 물건이 남아 있을지도 모른다.",
+      "3": "잠긴 문을 열 단서나 출입증이 이 방 어딘가에 남아 있을 가능성이 있다."
+    },
     "hint_examples": [
       "이곳은 직원들 휴게 공간인가 보군... 여기 어딘가에 필요한 물건이 있을지도 몰라.",
       "여긴 누군가 머물던 곳 같다... 그냥 지나치긴 어렵다."
-    ]
+    ],
+    "director_action": {
+      "type": "hint_only",
+      "hint_level_policy": "increase_with_hint_count"
+    }
   },
   {
     "id": "tutorial_office_desk",
@@ -105,15 +176,33 @@
       "A room contains a table, sink, cup, and scattered objects."
     ],
     "spoiler_level": 1,
+    "director_tags": ["tutorial", "exploration", "desk_clue"],
+    "required_context": {
+      "area_id": "TutorialZone",
+      "min_hint_count": 0,
+      "max_hint_count": 5,
+      "required_inventory": [],
+      "missing_inventory": [],
+      "required_interactions": []
+    },
     "facts": [
       "책상과 컴퓨터가 있는 사무 공간이다.",
       "책상 주변에는 단서가 남아 있을 수 있다.",
       "흩어진 물건들은 조사 대상이 될 수 있다."
     ],
+    "hint_by_level": {
+      "1": "책상 주변에 뭔가 남아 있을 것 같다.",
+      "2": "이런 사무 공간이라면 기록이나 작은 물건이 남아 있을 가능성이 있다.",
+      "3": "책상 위나 주변 물건 중 잠긴 문과 연결될 만한 단서가 있을지도 모른다."
+    },
     "hint_examples": [
       "책상 주변에 단서가 남아 있을지도 모른다.",
       "이 주변에 뭔가 남아 있을 것 같다."
-    ]
+    ],
+    "director_action": {
+      "type": "hint_only",
+      "hint_level_policy": "increase_with_hint_count"
+    }
   },
   {
     "id": "tutorial_blood_stains_only",
@@ -128,14 +217,32 @@
       "A corridor has dark stains but no visible bodies."
     ],
     "spoiler_level": 1,
+    "director_tags": ["tutorial", "horror_clue", "low_progress_value"],
+    "required_context": {
+      "area_id": "TutorialZone",
+      "min_hint_count": 0,
+      "max_hint_count": 5,
+      "required_inventory": [],
+      "missing_inventory": [],
+      "required_interactions": []
+    },
     "facts": [
       "핏자국이나 얼룩은 보이지만 시체나 중요한 물체는 보이지 않는다.",
       "이 흔적만으로는 튜토리얼 퍼즐과 직접 관련된 단서라고 보기 어렵다."
     ],
+    "hint_by_level": {
+      "1": "핏자국은 보이지만, 이것만으로는 확실히 알 수 없다.",
+      "2": "흔적은 있지만 지금 보이는 것만으로는 직접적인 단서라고 보긴 어렵다.",
+      "3": "이 흔적보다는 주변의 문, 책상, 작은 물건처럼 더 구체적인 대상을 확인해야 할 것 같다."
+    },
     "hint_examples": [
       "핏자국은 보이지만, 이것만으로는 확실히 알 수 없다.",
       "흔적은 있지만 아직 확신하기 어렵다."
-    ]
+    ],
+    "director_action": {
+      "type": "hint_only",
+      "hint_level_policy": "increase_with_hint_count"
+    }
   },
   {
     "id": "tutorial_keycard",
@@ -150,15 +257,33 @@
       "A small card is lying among scattered objects."
     ],
     "spoiler_level": 1,
+    "director_tags": ["tutorial", "key_item", "locked_door_progress"],
+    "required_context": {
+      "area_id": "TutorialZone",
+      "min_hint_count": 0,
+      "max_hint_count": 5,
+      "required_inventory": [],
+      "missing_inventory": ["Keycard"],
+      "required_interactions": []
+    },
     "facts": [
       "키카드는 출입증처럼 보인다.",
       "키카드는 잠긴 문 옆 장치와 관련될 수 있다.",
       "플레이어는 이 물건을 확인할 수 있다."
     ],
+    "hint_by_level": {
+      "1": "책상 위의 작은 카드가 그냥 놓인 물건처럼 보이진 않는다.",
+      "2": "저 카드라면 출입이 제한된 문과 관련이 있을지도 모른다.",
+      "3": "PRIVATE 문 옆 장치에는 이런 출입증이 필요할 가능성이 높다."
+    },
     "hint_examples": [
       "저건 키카드 같은데... 저게 출입증인가?",
       "이 카드라면 아까 그 문과 관련이 있을지도 모른다."
-    ]
+    ],
+    "director_action": {
+      "type": "hint_only",
+      "hint_level_policy": "increase_with_hint_count"
+    }
   },
   {
     "id": "tutorial_no_clue",
@@ -173,12 +298,392 @@
       "The scene contains no obvious interactable object."
     ],
     "spoiler_level": 1,
+    "director_tags": ["tutorial", "no_clue", "fallback"],
+    "required_context": {
+      "area_id": "TutorialZone",
+      "min_hint_count": 0,
+      "max_hint_count": 5,
+      "required_inventory": [],
+      "missing_inventory": [],
+      "required_interactions": []
+    },
     "facts": [
       "현재 장면에서는 튜토리얼 퍼즐과 직접 관련된 단서가 확인되지 않는다."
     ],
+    "hint_by_level": {
+      "1": "지금 보이는 것만으로는 확실한 단서를 찾기 어렵다.",
+      "2": "이 장면보다는 문, 책상, 카드처럼 더 분명한 대상을 봐야 할 것 같다.",
+      "3": "현재 시야에는 직접적인 단서가 없으니 다른 구역의 오브젝트를 기준으로 판단해야 할 것 같다."
+    },
     "hint_examples": [
       "지금 보이는 것만으로는 확실한 단서를 찾기 어렵다.",
       "여긴 당장 살펴볼 만한 단서가 없어 보인다."
-    ]
+    ],
+    "director_action": {
+      "type": "hint_only",
+      "hint_level_policy": "increase_with_hint_count"
+    }
+  },
+  {
+    "id": "mainhall_no_clue",
+    "area_id": "MainHall",
+    "scene_type": "no_clue",
+    "search_scenes": [
+      "A dark hallway is visible with no clear important object.",
+      "A corridor is visible but no obvious clue can be seen.",
+      "Only hallway walls and lighting are visible.",
+      "A large hall or corridor contains no clear interactable object."
+    ],
+    "spoiler_level": 1,
+    "director_tags": ["main_hall", "no_clue", "fallback"],
+    "required_context": {
+      "area_id": "MainHall",
+      "min_hint_count": 0,
+      "max_hint_count": 5,
+      "required_inventory": [],
+      "missing_inventory": [],
+      "required_interactions": []
+    },
+    "facts": [
+      "현재 복도 장면에서는 직접적인 단서가 보이지 않는다.",
+      "복도는 다른 구역으로 이동하는 중심 공간이다."
+    ],
+    "hint_by_level": {
+      "1": "복도 자체보다는 이어진 방들이 더 중요해 보인다.",
+      "2": "이곳은 지나가는 공간에 가깝고, 단서는 주변 방 안에 있을 가능성이 높다.",
+      "3": "복도에서 오래 머물기보다는 튜토리얼 구역이나 실험실 쪽 단서를 다시 확인하는 편이 낫다."
+    },
+    "hint_examples": [
+      "복도 자체에서는 확실한 단서를 찾기 어렵다.",
+      "이곳은 다른 구역으로 이어지는 통로처럼 보인다."
+    ],
+    "director_action": {
+      "type": "hint_only",
+      "hint_level_policy": "increase_with_hint_count"
+    }
+  },
+  {
+    "id": "labzone_no_clue",
+    "area_id": "LabZone",
+    "scene_type": "no_clue",
+    "search_scenes": [
+      "A laboratory room is visible with no clear clue.",
+      "A dark lab area contains tables and equipment but no obvious object.",
+      "A room with laboratory equipment is visible.",
+      "A lab-like room has no clear interactable item visible."
+    ],
+    "spoiler_level": 1,
+    "director_tags": ["lab", "no_clue", "fallback"],
+    "required_context": {
+      "area_id": "LabZone",
+      "min_hint_count": 0,
+      "max_hint_count": 5,
+      "required_inventory": [],
+      "missing_inventory": [],
+      "required_interactions": []
+    },
+    "facts": [
+      "실험실 구역에서는 장비와 책상이 단서가 될 수 있다.",
+      "현재 시야만으로는 명확한 단서가 보이지 않는다."
+    ],
+    "hint_by_level": {
+      "1": "실험실이라면 기록이나 장비 쪽에 단서가 남아 있을지도 모른다.",
+      "2": "지금 보이는 장면만으로는 부족하지만, 실험대나 문서 쪽이 더 중요해 보인다.",
+      "3": "실험실에서는 장비보다 기록물이나 상호작용 가능한 물체를 기준으로 다시 살펴봐야 할 것 같다."
+    },
+    "hint_examples": [
+      "실험실 안이라면 뭔가 기록이 남아 있을지도 모른다.",
+      "지금 보이는 것만으로는 확실한 단서를 찾기 어렵다."
+    ],
+    "director_action": {
+      "type": "hint_only",
+      "hint_level_policy": "increase_with_hint_count"
+    }
+  },
+  {
+  "id": "mainhall_bright_hall",
+  "area_id": "MainHall",
+  "scene_type": "bright_hall",
+  "search_scenes": [
+    "A bright large hall is visible.",
+    "A spacious hall with bright lighting is visible.",
+    "A clean bright lobby or hall is shown.",
+    "A large open hall is visible with lights on.",
+    "The player is looking at a bright main hall.",
+    "A wide illuminated hall is visible."
+  ],
+  "spoiler_level": 1,
+  "director_tags": ["mainhall", "arrival", "environment"],
+  "required_context": {
+    "area_id": "MainHall",
+    "min_hint_count": 0,
+    "max_hint_count": 5,
+    "required_inventory": [],
+    "missing_inventory": [],
+    "required_interactions": []
+  },
+  "facts": [
+    "메인 홀은 비교적 밝고 넓은 공간이다.",
+    "이 공간은 다른 방이나 잠긴 문으로 이어질 수 있다.",
+    "처음 들어왔을 때 주변 구조를 파악해야 하는 구역이다."
+  ],
+  "hint_by_level": {
+    "1": "갑자기 밝은 홀이 나오니 더 낯설다... 이곳 구조부터 파악해야 할 것 같다.",
+    "2": "홀 자체보다는 주변에 이어진 문이나 물건들이 더 중요해 보인다.",
+    "3": "이 홀에서는 오른쪽 문과 주변 기계 쪽을 기준으로 단서를 찾아야 할 것 같다."
+  },
+  "hint_examples": [
+    "갑자기 밝은 홀이 나오니 더 낯설다... 주변을 살펴봐야 할 것 같다.",
+    "홀 자체보다 이어진 문이나 장치가 더 신경 쓰인다."
+  ],
+  "director_action": {
+    "type": "hint_only",
+    "hint_level_policy": "increase_with_hint_count"
   }
+},
+{
+  "id": "mainhall_locked_door",
+  "area_id": "MainHall",
+  "scene_type": "locked_door",
+  "search_scenes": [
+    "A locked door is visible on the right side of a hall.",
+    "A door with an access device is visible in a bright hall.",
+    "A secured door is visible near the main hall.",
+    "A door that looks locked is visible on the side of the hall.",
+    "A door with a panel or reader is visible in the hall.",
+    "A closed door with a small device next to it is visible."
+  ],
+  "spoiler_level": 1,
+  "director_tags": ["mainhall", "locked_door", "requires_keycard"],
+  "required_context": {
+    "area_id": "MainHall",
+    "min_hint_count": 0,
+    "max_hint_count": 5,
+    "required_inventory": [],
+    "missing_inventory": ["MainHallKeycard"],
+    "required_interactions": []
+  },
+  "facts": [
+    "메인 홀 오른쪽에는 잠긴 문이 있다.",
+    "문은 그냥 열리지 않는 상태로 보인다.",
+    "이 문을 열려면 키카드 같은 출입 수단이 필요할 수 있다."
+  ],
+  "hint_by_level": {
+    "1": "오른쪽 문은 그냥 열릴 것 같지 않다.",
+    "2": "문이 잠겨 있다면 이 홀 어딘가에 열 수 있는 단서가 남아 있을지도 모른다.",
+    "3": "이 문은 키카드 같은 출입 수단과 연결되어 있을 가능성이 높다."
+  },
+  "hint_examples": [
+    "오른쪽 문은 잠긴 것 같다... 그냥 지나갈 수는 없어 보인다.",
+    "이 문도 뭔가 출입 수단이 필요한 것 같다."
+  ],
+  "director_action": {
+    "type": "hint_only",
+    "hint_level_policy": "increase_with_hint_count"
+  }
+},
+{
+  "id": "mainhall_machine_area",
+  "area_id": "MainHall",
+  "scene_type": "machine_area",
+  "search_scenes": [
+    "A machine or terminal is visible in front of the hall.",
+    "A large device or machine is visible with chairs nearby.",
+    "A machine-like object is visible near two chairs.",
+    "A terminal or mechanical device is visible in the hall.",
+    "Two chairs are placed near a machine or console.",
+    "A device with two chairs nearby is visible."
+  ],
+  "spoiler_level": 1,
+  "director_tags": ["mainhall", "machine", "clue_area"],
+  "required_context": {
+    "area_id": "MainHall",
+    "min_hint_count": 0,
+    "max_hint_count": 5,
+    "required_inventory": [],
+    "missing_inventory": ["MainHallKeycard"],
+    "required_interactions": []
+  },
+  "facts": [
+    "메인 홀 앞쪽에는 기계처럼 보이는 장치가 있다.",
+    "기계 주변에는 의자 두 개가 놓여 있다.",
+    "의자 주변에는 노트와 키카드가 놓여 있을 수 있다."
+  ],
+  "hint_by_level": {
+    "1": "앞쪽의 기계와 의자들이 그냥 배치된 것 같지는 않다.",
+    "2": "기계 주변 의자에 무언가 남아 있을 가능성이 있다.",
+    "3": "잠긴 문을 열 단서는 기계 주변 의자 쪽에 있을 가능성이 높다."
+  },
+  "hint_examples": [
+    "저 기계 주변이 신경 쓰인다... 누군가 앉아 있던 흔적 같기도 하다.",
+    "의자 쪽에 뭔가 남아 있을지도 모른다."
+  ],
+  "director_action": {
+    "type": "hint_only",
+    "hint_level_policy": "increase_with_hint_count"
+  }
+},
+{
+  "id": "mainhall_note_on_chair",
+  "area_id": "MainHall",
+  "scene_type": "note_on_chair",
+  "search_scenes": [
+    "A note is lying on a chair.",
+    "A piece of paper is visible on one of the chairs.",
+    "A chair has a note or paper placed on it.",
+    "A written note is visible near a machine.",
+    "A small paper note is placed on a chair.",
+    "One chair has a paper note on it."
+  ],
+  "spoiler_level": 1,
+  "director_tags": ["mainhall", "note", "clue"],
+  "required_context": {
+    "area_id": "MainHall",
+    "min_hint_count": 0,
+    "max_hint_count": 5,
+    "required_inventory": [],
+    "missing_inventory": ["MainHallKeycard"],
+    "required_interactions": []
+  },
+  "facts": [
+    "기계 근처 의자 중 하나에는 노트가 놓여 있다.",
+    "노트에는 메인 홀의 잠긴 문이나 키카드와 관련된 내용이 적혀 있을 수 있다.",
+    "노트는 주변 상황을 이해하는 단서가 될 수 있다."
+  ],
+  "hint_by_level": {
+    "1": "의자 위의 종이가 그냥 버려진 것 같지는 않다.",
+    "2": "저 노트에는 이 홀에서 무슨 일이 있었는지 적혀 있을지도 모른다.",
+    "3": "잠긴 문을 열 방법은 저 노트와 주변 의자에 남은 물건을 통해 알 수 있을 것 같다."
+  },
+  "hint_examples": [
+    "의자 위에 뭔가 적힌 종이가 있다... 그냥 지나칠 수는 없겠군.",
+    "저 노트가 이 홀의 단서일지도 모른다."
+  ],
+  "director_action": {
+    "type": "hint_only",
+    "hint_level_policy": "increase_with_hint_count"
+  }
+},
+{
+  "id": "mainhall_keycard_on_chair",
+  "area_id": "MainHall",
+  "scene_type": "keycard_on_chair",
+  "search_scenes": [
+    "A small card is lying on a chair.",
+    "A keycard is visible on one of the chairs.",
+    "An access card is placed on a chair near a machine.",
+    "A small rectangular card is visible on a chair.",
+    "A card or ID badge is lying on a chair.",
+    "One chair has a keycard-like object on it."
+  ],
+  "spoiler_level": 1,
+  "director_tags": ["mainhall", "key_item", "keycard", "locked_door_progress"],
+  "required_context": {
+    "area_id": "MainHall",
+    "min_hint_count": 0,
+    "max_hint_count": 5,
+    "required_inventory": [],
+    "missing_inventory": ["MainHallKeycard"],
+    "required_interactions": []
+  },
+  "facts": [
+    "기계 근처 의자 중 하나에는 키카드가 놓여 있다.",
+    "키카드는 메인 홀의 잠긴 문과 관련될 수 있다.",
+    "키카드는 출입 수단처럼 보인다."
+  ],
+  "hint_by_level": {
+    "1": "의자 위의 작은 카드가 눈에 띈다.",
+    "2": "저 카드라면 잠긴 문과 관련된 출입 수단일지도 모른다.",
+    "3": "이 키카드는 메인 홀 오른쪽의 잠긴 문을 여는 데 필요한 물건일 가능성이 높다."
+  },
+  "hint_examples": [
+    "의자 위에 카드가 있다... 출입증 같은 건가?",
+    "저 카드라면 아까 본 잠긴 문과 관련이 있을지도 모른다."
+  ],
+  "director_action": {
+    "type": "hint_only",
+    "hint_level_policy": "increase_with_hint_count"
+  }
+},
+{
+  "id": "mainhall_two_chairs",
+  "area_id": "MainHall",
+  "scene_type": "two_chairs",
+  "search_scenes": [
+    "Two chairs are visible near a machine.",
+    "Two chairs are placed side by side in the hall.",
+    "A pair of chairs is visible near a device.",
+    "There are two chairs in front of a machine.",
+    "Two seats are visible near a terminal.",
+    "The scene shows two chairs beside a machine-like object."
+  ],
+  "spoiler_level": 1,
+  "director_tags": ["mainhall", "chairs", "clue_area"],
+  "required_context": {
+    "area_id": "MainHall",
+    "min_hint_count": 0,
+    "max_hint_count": 5,
+    "required_inventory": [],
+    "missing_inventory": ["MainHallKeycard"],
+    "required_interactions": []
+  },
+  "facts": [
+    "기계 근처에는 의자 두 개가 놓여 있다.",
+    "두 의자 중 하나에는 노트가 있고 다른 하나에는 키카드가 있을 수 있다.",
+    "의자 주변은 메인 홀 퍼즐의 핵심 단서 위치다."
+  ],
+  "hint_by_level": {
+    "1": "기계 옆 의자들이 묘하게 신경 쓰인다.",
+    "2": "두 의자 주변에 뭔가 남겨진 물건이 있을지도 모른다.",
+    "3": "노트와 키카드는 기계 근처 두 의자 쪽에서 확인할 수 있을 가능성이 높다."
+  },
+  "hint_examples": [
+    "기계 옆 의자들이 그냥 놓인 것 같지는 않다.",
+    "저 의자 주변에 뭔가 남아 있을지도 모른다."
+  ],
+  "director_action": {
+    "type": "hint_only",
+    "hint_level_policy": "increase_with_hint_count"
+  }
+},
+{
+  "id": "mainhall_no_clue",
+  "area_id": "MainHall",
+  "scene_type": "no_clue",
+  "search_scenes": [
+    "A bright hall is visible with no clear important object.",
+    "Only walls, floor, and lighting are visible in the hall.",
+    "A plain hall is visible with no clear clue.",
+    "A bright corner or empty wall is visible.",
+    "No card, note, door, chair, or machine is clearly visible.",
+    "The scene contains no obvious interactable object in the hall."
+  ],
+  "spoiler_level": 1,
+  "director_tags": ["mainhall", "no_clue", "fallback"],
+  "required_context": {
+    "area_id": "MainHall",
+    "min_hint_count": 0,
+    "max_hint_count": 5,
+    "required_inventory": [],
+    "missing_inventory": [],
+    "required_interactions": []
+  },
+  "facts": [
+    "현재 메인 홀 장면에서는 직접적인 단서가 확인되지 않는다.",
+    "메인 홀에서는 잠긴 문, 기계 주변, 의자 위 물건들이 주요 단서가 될 수 있다."
+  ],
+  "hint_by_level": {
+    "1": "지금 보이는 것만으로는 확실한 단서를 찾기 어렵다.",
+    "2": "이 홀에서는 문이나 기계 주변처럼 더 분명한 대상을 봐야 할 것 같다.",
+    "3": "오른쪽의 잠긴 문과 기계 근처 의자 쪽을 기준으로 다시 살펴봐야 할 것 같다."
+  },
+  "hint_examples": [
+    "지금 보이는 것만으로는 확실한 단서를 찾기 어렵다.",
+    "이 홀에는 단서가 있을 것 같지만, 지금 시야에는 뚜렷하게 보이지 않는다."
+  ],
+  "director_action": {
+    "type": "hint_only",
+    "hint_level_policy": "increase_with_hint_count"
+  }
+}
 ]
