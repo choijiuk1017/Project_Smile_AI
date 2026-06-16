@@ -1,569 +1,251 @@
 import json
 import random
 
-OUTPUT_PATH = "lora_tutorial_hint_reasoning_policy.jsonl"
+OUTPUT_PATH = "lora_journal_hint_reasoning_policy.jsonl"
+RANDOM_SEED = 42
+
+random.seed(RANDOM_SEED)
 
 scene_types = {
-    # =========================
-    # TutorialZone
-    # =========================
     "spawn_corpse": {
         "area_id": "TutorialZone",
         "scenes": [
             "A single body is lying on the floor in a dark room.",
             "One person is lying motionless on the ground.",
-            "A single humanoid figure is collapsed on the floor.",
-            "Only one body is visible near a staircase.",
-            "One injured person is lying on a tiled floor.",
-            "A single figure is lying on the floor with blood nearby."
+            "Only one body is visible near a staircase."
         ],
         "rag": "방 안에 한 명의 시체가 쓰러져 있다. 주변에는 핏자국이 남아 있다. 단순히 넘어진 것이 아니라 공격받은 흔적으로 보인다.",
-        "reference": "저 시체는 뭐지? 무언가한테 공격받은 것 같은데...",
-        "reasoning_policy": "장면에 보이는 사람은 한 명이다. 여러 명이 쓰러져 있다고 말하지 않는다. 복도 전체의 사건으로 확대하지 않는다. 한 명의 시체와 주변 핏자국만 바탕으로 추론한다.",
-        "answers": [
-            "저 사람... 그냥 쓰러진 건 아닌 것 같다.",
-            "피가 주변에 튄 걸 보면... 저 사람은 공격받은 건가?",
-            "움직임이 없다... 단순히 넘어진 건 아닌 것 같다.",
-            "저 상태라면 무언가에게 당한 흔적처럼 보인다.",
-            "한 사람이 저렇게 쓰러져 있다... 여기서 무슨 일이 있었던 거지?"
-        ]
-    },
-    "hallway_corpses": {
-        "area_id": "TutorialZone",
-        "scenes": [
-            "Multiple bodies are lying on the floor in a hallway.",
-            "Several human figures are lying across a corridor.",
-            "Two or more bodies are scattered across a corridor floor.",
-            "A hallway contains many motionless people.",
-            "Several bodies are visible in a long corridor.",
-            "A corridor floor is covered with multiple bodies."
+        "reference": "저 사람... 그냥 쓰러진 건 아닌 것 같다.",
+        "reasoning_policy": "장면에 보이는 사람은 한 명이다. 여러 명이 쓰러져 있다고 말하지 않는다.",
+        "titles": ["의문의 시체", "쓰러진 사람"],
+        "observations": [
+            "바닥에 한 명의 사람이 쓰러져 있고 주변에는 핏자국이 남아 있다.",
+            "어두운 방 안에 움직임 없는 사람이 보인다."
         ],
-        "rag": "복도에는 여러 명의 사람이 쓰러져 있다. 복도 전체에 핏자국과 쓰러진 사람들이 보인다. 여러 사람이 동시에 피해를 입은 사건처럼 보인다.",
-        "reference": "끔찍하군... 대체 무슨 일이 있었던 거야?",
-        "reasoning_policy": "장면에는 여러 명이 쓰러져 있다. 한 명만 있다고 축소하지 않는다. 복도나 통로 전체에서 벌어진 사건처럼 추론한다.",
-        "answers": [
-            "복도에 쓰러진 사람이 한둘이 아니다... 여기서 무슨 일이 있었던 거지?",
-            "이 정도로 여러 사람이 쓰러져 있다면 단순한 사고는 아닌 것 같다.",
-            "복도 전체가 사건 현장처럼 보인다... 누가 이런 짓을 한 거지?",
-            "사람들이 이렇게까지 쓰러져 있다니... 무언가 큰일이 벌어진 것 같다.",
-            "여러 사람이 한꺼번에 당한 흔적처럼 보인다... 우연은 아닌 것 같다."
+        "reasonings": [
+            "단순히 넘어진 것이 아니라 누군가에게 공격받은 흔적처럼 보인다.",
+            "주변의 핏자국을 보면 사고보다는 외부 공격 가능성이 있어 보인다."
+        ],
+        "conclusions": [
+            "저 사람은 그냥 쓰러진 게 아닌 것 같다.",
+            "이곳에서 이미 위험한 일이 벌어진 것 같다."
+        ],
+        "hints": [
+            "저 사람... 그냥 쓰러진 건 아닌 것 같다.",
+            "피가 주변에 튄 걸 보면... 공격받은 흔적처럼 보인다."
         ]
     },
+
     "locked_private_door": {
         "area_id": "TutorialZone",
         "scenes": [
             "A black door labeled PRIVATE is visible.",
-            "A door with the word PRIVATE written on it is shown.",
-            "A PRIVATE door is visible in a dimly lit room.",
             "A secured door with a keypad or access device is visible.",
-            "A door labeled PRIVATE has a small wall device next to it.",
             "A locked-looking door with an access panel is visible."
         ],
-        "rag": "문에는 PRIVATE 표시가 있다. 문 옆에는 키패드 같은 장치가 있다. 문은 잠긴 상태일 가능성이 높다. 키패드 같은 장치는 키카드나 출입증이 필요할 수 있음을 암시한다.",
-        "reference": "문이 잠긴 것 같은데... 옆에 키패드를 보면 키카드 같은 것이 필요하겠어...",
-        "reasoning_policy": "PRIVATE 표시와 문 옆 장치를 근거로 추론한다. 키카드가 확정적으로 있다고 말하지 않고 필요할 가능성으로만 말한다. 행동 지시를 하지 않는다.",
-        "answers": [
+        "rag": "문에는 PRIVATE 표시가 있다. 문 옆에는 키패드 같은 장치가 있다. 문은 잠긴 상태일 가능성이 높다.",
+        "reference": "PRIVATE라... 그냥 열 수 있는 문은 아닌 것 같다.",
+        "reasoning_policy": "PRIVATE 표시와 문 옆 장치를 근거로 추론한다. 행동 지시를 하지 않는다.",
+        "titles": ["PRIVATE 문", "잠긴 문"],
+        "observations": [
+            "문에는 PRIVATE 표시가 있고 옆에는 인증 장치처럼 보이는 장치가 있다.",
+            "문 옆에 출입을 확인하는 장치처럼 보이는 물체가 붙어 있다."
+        ],
+        "reasonings": [
+            "이 문은 일반적인 방식으로 열리는 문이 아니라 출입 권한을 요구하는 구조처럼 보인다.",
+            "PRIVATE 표시와 장치를 보면 제한된 구역으로 연결된 문일 가능성이 높다."
+        ],
+        "conclusions": [
+            "이 문은 그냥 열 수 있는 문이 아닌 것 같다.",
+            "출입 권한 없이는 지나가기 어려워 보인다."
+        ],
+        "hints": [
             "PRIVATE라... 그냥 열 수 있는 문은 아닌 것 같다.",
-            "문 옆 장치를 보면 출입을 확인하는 무언가가 필요한 것 같다.",
-            "PRIVATE 표시와 장치를 보면 인증 없이는 열리지 않을 것 같다.",
-            "이 문은 평범한 문이 아니다... 뭔가 조건이 필요한 것 같다.",
-            "옆에 붙은 장치가 신경 쓰인다... 출입증 같은 것이 필요할지도 모른다."
+            "문 옆 장치를 보면 인증이 필요한 것 같다."
         ]
     },
+
     "rest_area": {
         "area_id": "TutorialZone",
         "scenes": [
             "A room contains beds and furniture.",
-            "A dilapidated room contains beds, chairs, and a television.",
-            "A room with a bed, chair, table, and television is visible.",
             "A rest area contains beds and personal furniture.",
-            "A room looks like a place where people used to rest.",
-            "A room contains beds and scattered debris."
+            "A room looks like a place where people used to rest."
         ],
-        "rag": "침대와 가구가 있는 방은 직원 휴게 공간처럼 보인다. 이 방 안에는 문을 여는 데 필요한 물건이 있을 수 있다. 플레이어는 방 안을 살펴볼 수 있다.",
-        "reference": "이곳은 직원들 휴게 공간인가 보군... 여기 어딘가에 필요한 물건이 있을지도 몰라.",
-        "reasoning_policy": "침대와 가구를 근거로 누군가 머물던 공간이라고 추론한다. 특정 물건이 있다고 단정하지 않는다. 행동 지시를 하지 않는다.",
-        "answers": [
+        "rag": "침대와 가구가 있는 방은 직원 휴게 공간처럼 보인다. 이 방 안에는 단서가 남아 있을 수 있다.",
+        "reference": "여긴 누군가 머물던 공간 같다.",
+        "reasoning_policy": "침대와 가구를 근거로 누군가 머물던 공간이라고 추론한다.",
+        "titles": ["직원 휴게 공간", "버려진 휴게실"],
+        "observations": [
+            "방 안에는 침대와 가구가 있고 누군가 생활하던 흔적이 남아 있다.",
+            "침대와 의자 같은 물건들이 보여 휴식 공간처럼 보인다."
+        ],
+        "reasonings": [
+            "이곳은 직원들이 쉬거나 머물던 공간일 가능성이 있다.",
+            "누군가 사용하던 방이라면 작은 단서나 물건이 남아 있을 수 있다."
+        ],
+        "conclusions": [
+            "여긴 누군가 쓰던 공간 같다.",
+            "그냥 지나칠 만한 방은 아닌 것 같다."
+        ],
+        "hints": [
             "침대와 가구를 보면... 사람들이 머물던 공간 같다.",
-            "여긴 누군가 쉬던 곳 같다... 그냥 비어 있는 방은 아닌 것 같다.",
-            "직원들이 쓰던 공간이라면 뭔가 남아 있을지도 모른다.",
-            "이 공간은 누군가 사용하던 흔적이 있다... 그냥 지나치긴 어렵다.",
-            "침대와 가구가 남아 있다... 필요한 단서가 숨어 있을지도 모른다."
-        ]
-    },
-    "office_desk": {
-        "area_id": "TutorialZone",
-        "scenes": [
-            "A room contains a desk and a chair.",
-            "A desk with a computer monitor is visible.",
-            "A room has a desk, chair, and computer monitor.",
-            "A desk with scattered objects is visible in a dim room.",
-            "A table with a cup and a small object is visible.",
-            "A room contains a table, sink, cup, and scattered objects."
-        ],
-        "rag": "책상과 컴퓨터가 있는 사무 공간이다. 책상 주변에는 단서가 남아 있을 수 있다. 흩어진 물건들은 조사 대상이 될 수 있다.",
-        "reference": "책상 주변에 단서가 남아 있을지도 모른다.",
-        "reasoning_policy": "책상, 컴퓨터, 흩어진 물건을 근거로 추론한다. 특정 아이템을 만들어내지 않는다. 행동 지시를 하지 않는다.",
-        "answers": [
-            "책상 주변에 물건들이 흩어져 있다... 뭔가 남아 있을지도 모른다.",
-            "컴퓨터와 책상이 있는 걸 보면... 기록이 남아 있을 가능성이 있다.",
-            "이건 작업 공간 같다... 단서가 남아 있을지도 모른다.",
-            "누군가 여기서 일하다 떠난 흔적 같다... 그냥 넘기긴 어렵다.",
-            "흩어진 물건들을 보면... 이 주변에 뭔가 남아 있을 것 같다."
-        ]
-    },
-    "blood_stains_only": {
-        "area_id": "TutorialZone",
-        "scenes": [
-            "A room has blood stains but no visible body.",
-            "Dark stains are scattered across the floor with no person visible.",
-            "The floor and walls have splatters but no body is visible.",
-            "A dim room contains stains and splatters but no clear object.",
-            "Blood-like marks are visible on the floor without any person nearby.",
-            "A corridor has dark stains but no visible bodies."
-        ],
-        "rag": "핏자국이나 얼룩은 보이지만 시체나 중요한 물체는 보이지 않는다. 이 흔적만으로는 튜토리얼 퍼즐과 직접 관련된 단서라고 보기 어렵다.",
-        "reference": "핏자국은 보이지만, 이것만으로는 확실히 알 수 없다.",
-        "reasoning_policy": "핏자국만 근거로 추론한다. 시체, 키카드, 문 같은 보이지 않는 물체를 추가하지 않는다. 확실하지 않다는 방향으로 말한다.",
-        "answers": [
-            "핏자국은 보이지만, 이것만으로는 확실히 알 수 없다.",
-            "흔적은 남아 있는데... 이걸로 판단하긴 어렵다.",
-            "피가 보이긴 하지만 주변에 분명한 단서는 없는 것 같다.",
-            "여기서 무언가 있었던 건 맞지만... 아직 확신하긴 어렵다.",
-            "핏자국만으로는 무슨 일이 있었는지 단정할 수 없다."
-        ]
-    },
-    "tutorial_keycard": {
-        "area_id": "TutorialZone",
-        "scenes": [
-            "A small card is visible on a desk.",
-            "An access card is lying on a table.",
-            "A keycard-like object is visible near a computer.",
-            "A small rectangular card is placed on a surface.",
-            "A card or ID badge is visible in the room.",
-            "A small card is lying among scattered objects."
-        ],
-        "rag": "키카드는 출입증처럼 보인다. 키카드는 잠긴 문 옆 장치와 관련될 수 있다. 플레이어는 이 물건을 확인할 수 있다.",
-        "reference": "저건 키카드 같은데... 저게 출입증인가?",
-        "reasoning_policy": "작은 카드나 출입증처럼 보이는 물체를 근거로 추론한다. 잠긴 문과 관련될 가능성은 말할 수 있지만, 정답처럼 단정하지 않는다.",
-        "answers": [
-            "저건 키카드 같은데... 출입증으로 쓰는 물건인가?",
-            "책상 위의 작은 카드가 그냥 놓인 물건처럼 보이진 않는다.",
-            "저 카드라면 출입이 제한된 문과 관련이 있을지도 모른다.",
-            "작은 카드가 눈에 띈다... 뭔가를 여는 데 쓰는 물건일지도 모른다.",
-            "이 카드라면 아까 본 장치와 연결될 가능성이 있다."
-        ]
-    },
-    "tutorial_no_clue": {
-        "area_id": "TutorialZone",
-        "scenes": [
-            "An empty dark room with no clear important object.",
-            "Only walls, floor, and lighting are visible.",
-            "A plain room is visible with no clear clue.",
-            "A dark corner or empty wall is visible.",
-            "No person, card, door label, desk, or bed is clearly visible.",
-            "The scene contains no obvious interactable object."
-        ],
-        "rag": "현재 장면에서는 튜토리얼 퍼즐과 직접 관련된 단서가 확인되지 않는다.",
-        "reference": "지금 보이는 것만으로는 확실한 단서를 찾기 어렵다.",
-        "reasoning_policy": "명확한 단서가 보이지 않는다고 말한다. 보이지 않는 물체나 해결 방법을 만들지 않는다.",
-        "answers": [
-            "지금 보이는 것만으로는 확실한 단서를 찾기 어렵다.",
-            "확실한 단서는 보이지 않는다.",
-            "이 장면만으로는 판단할 정보가 부족하다.",
-            "여기서는 당장 의미 있는 단서를 찾기 어려워 보인다.",
-            "지금 시야에는 눈에 띄는 단서가 없다."
+            "여긴 누군가 쉬던 곳 같다... 그냥 비어 있는 방은 아닌 것 같다."
         ]
     },
 
-    # =========================
-    # MainHall
-    # =========================
-    "mainhall_bright_hall": {
-        "area_id": "MainHall",
-        "scenes": [
-            "A bright large hall is visible.",
-            "A spacious hall with bright lighting is visible.",
-            "A clean bright lobby or hall is shown.",
-            "A large open hall is visible with lights on.",
-            "The player is looking at a bright main hall.",
-            "A wide illuminated hall is visible."
-        ],
-        "rag": "메인 홀은 비교적 밝고 넓은 공간이다. 이 공간은 다른 방이나 잠긴 문으로 이어질 수 있다. 처음 들어왔을 때 주변 구조를 파악해야 하는 구역이다.",
-        "reference": "갑자기 밝은 홀이 나오니 더 낯설다... 주변을 살펴봐야 할 것 같다.",
-        "reasoning_policy": "밝고 넓은 홀의 구조를 근거로 추론한다. 아직 키카드나 노트를 직접 언급하지 않는다. 주변에 이어진 문이나 장치를 의식하는 정도로만 말한다.",
-        "answers": [
-            "갑자기 밝은 홀이 나오니 더 낯설다... 이곳 구조부터 파악해야 할 것 같다.",
-            "이 홀은 단순한 통로 같지는 않다... 주변에 이어진 곳이 더 있을 것 같다.",
-            "밝은 공간이라 더 불안하다... 어딘가로 이어지는 문이 있을지도 모른다.",
-            "홀 자체보다 주변에 놓인 문이나 장치가 더 신경 쓰인다.",
-            "이 넓은 공간은 그냥 지나가는 곳만은 아닌 것 같다."
-        ]
-    },
     "mainhall_locked_door": {
         "area_id": "MainHall",
         "scenes": [
             "A locked door is visible on the right side of a hall.",
             "A door with an access device is visible in a bright hall.",
-            "A secured door is visible near the main hall.",
-            "A door that looks locked is visible on the side of the hall.",
-            "A door with a panel or reader is visible in the hall.",
             "A closed door with a small device next to it is visible."
         ],
-        "rag": "메인 홀 오른쪽에는 잠긴 문이 있다. 문은 그냥 열리지 않는 상태로 보인다. 이 문을 열려면 키카드 같은 출입 수단이 필요할 수 있다.",
+        "rag": "메인 홀 오른쪽에는 잠긴 문이 있다. 문은 그냥 열리지 않는 상태로 보인다.",
         "reference": "오른쪽 문은 잠긴 것 같다... 그냥 지나갈 수는 없어 보인다.",
-        "reasoning_policy": "오른쪽의 잠긴 문과 장치를 근거로 추론한다. 키카드가 확정적으로 있다고 말하지 않고 출입 수단이 필요할 가능성으로만 말한다.",
-        "answers": [
+        "reasoning_policy": "잠긴 문과 장치를 근거로 추론한다. 키카드를 확정적으로 말하지 않는다.",
+        "titles": ["메인 홀의 잠긴 문", "오른쪽 출입문"],
+        "observations": [
+            "메인 홀 오른쪽에 닫힌 문이 있고 주변에 출입 장치처럼 보이는 물체가 있다.",
+            "문은 일반적으로 열리는 구조처럼 보이지 않고 잠긴 상태처럼 보인다."
+        ],
+        "reasonings": [
+            "이 문은 별도의 출입 수단이나 인증 절차가 필요한 구조일 가능성이 있다.",
+            "주변 장치와 문 상태를 보면 그냥 통과하기는 어려워 보인다."
+        ],
+        "conclusions": [
+            "이 문은 그냥 열릴 것 같지 않다.",
+            "출입 수단이 없으면 열리지 않을 가능성이 높다."
+        ],
+        "hints": [
             "오른쪽 문은 그냥 열릴 것 같지 않다.",
-            "저 문도 출입을 막아둔 것 같다... 뭔가 조건이 필요한 건가?",
-            "문이 잠겨 있다면 이 홀 어딘가에 단서가 남아 있을지도 모른다.",
-            "옆에 장치가 있다면 그냥 손으로 열 수 있는 문은 아닌 것 같다.",
-            "이 문은 키카드 같은 출입 수단과 연결되어 있을 가능성이 높다."
+            "문이 잠겨 있다면 이 홀 어딘가에 단서가 남아 있을지도 모른다."
         ]
     },
-    "mainhall_machine_area": {
-        "area_id": "MainHall",
-        "scenes": [
-            "A machine or terminal is visible in front of the hall.",
-            "A large device or machine is visible with chairs nearby.",
-            "A machine-like object is visible near two chairs.",
-            "A terminal or mechanical device is visible in the hall.",
-            "Two chairs are placed near a machine or console.",
-            "A device with two chairs nearby is visible."
-        ],
-        "rag": "메인 홀 앞쪽에는 기계처럼 보이는 장치가 있다. 기계 주변에는 의자 두 개가 놓여 있다. 의자 주변에는 노트와 키카드가 놓여 있을 수 있다.",
-        "reference": "저 기계 주변이 신경 쓰인다... 누군가 앉아 있던 흔적 같기도 하다.",
-        "reasoning_policy": "기계와 의자 주변을 근거로 추론한다. 키카드와 노트를 바로 단정하지 않고, 주변에 무언가 남아 있을 가능성으로 말한다.",
-        "answers": [
-            "앞쪽의 기계와 의자들이 그냥 배치된 것 같지는 않다.",
-            "저 기계 주변은 누군가 사용하던 자리처럼 보인다.",
-            "기계 주변 의자에 무언가 남아 있을 가능성이 있다.",
-            "의자들이 기계 앞에 놓여 있다... 여긴 그냥 장식은 아닌 것 같다.",
-            "잠긴 문을 열 단서는 기계 주변 의자 쪽에 있을지도 모른다."
-        ]
-    },
-    "mainhall_note_on_chair": {
-        "area_id": "MainHall",
-        "scenes": [
-            "A note is lying on a chair.",
-            "A piece of paper is visible on one of the chairs.",
-            "A chair has a note or paper placed on it.",
-            "A written note is visible near a machine.",
-            "A small paper note is placed on a chair.",
-            "One chair has a paper note on it."
-        ],
-        "rag": "기계 근처 의자 중 하나에는 노트가 놓여 있다. 노트에는 메인 홀의 잠긴 문이나 키카드와 관련된 내용이 적혀 있을 수 있다. 노트는 주변 상황을 이해하는 단서가 될 수 있다.",
-        "reference": "의자 위에 뭔가 적힌 종이가 있다... 그냥 지나칠 수는 없겠군.",
-        "reasoning_policy": "의자 위의 노트를 근거로 추론한다. 노트의 내용을 직접 지어내지 않는다. 잠긴 문과 관련될 가능성은 말할 수 있다.",
-        "answers": [
-            "의자 위의 종이가 그냥 버려진 것 같지는 않다.",
-            "저 노트에는 이 홀에서 무슨 일이 있었는지 적혀 있을지도 모른다.",
-            "기계 옆 의자에 노트가 놓여 있다... 단서일 가능성이 높다.",
-            "종이가 일부러 남겨진 것처럼 보인다... 뭔가 알려주려는 건가?",
-            "잠긴 문을 이해하는 단서가 저 노트에 있을지도 모른다."
-        ]
-    },
+
     "mainhall_keycard_on_chair": {
         "area_id": "MainHall",
         "scenes": [
             "A small card is lying on a chair.",
             "A keycard is visible on one of the chairs.",
-            "An access card is placed on a chair near a machine.",
-            "A small rectangular card is visible on a chair.",
-            "A card or ID badge is lying on a chair.",
-            "One chair has a keycard-like object on it."
+            "An access card is placed on a chair near a machine."
         ],
-        "rag": "기계 근처 의자 중 하나에는 키카드가 놓여 있다. 키카드는 메인 홀의 잠긴 문과 관련될 수 있다. 키카드는 출입 수단처럼 보인다.",
+        "rag": "기계 근처 의자 중 하나에는 키카드가 놓여 있다. 키카드는 메인 홀의 잠긴 문과 관련될 수 있다.",
         "reference": "의자 위에 카드가 있다... 출입증 같은 건가?",
-        "reasoning_policy": "의자 위의 작은 카드나 출입증을 근거로 추론한다. 메인 홀의 잠긴 문과 연결될 가능성을 말할 수 있지만, 정답처럼 명령하지 않는다.",
-        "answers": [
+        "reasoning_policy": "의자 위의 작은 카드나 출입증을 근거로 추론한다.",
+        "titles": ["의자 위의 키카드", "남겨진 출입 카드"],
+        "observations": [
+            "기계 근처 의자 위에 작은 카드가 놓여 있다.",
+            "의자 위의 카드가 출입증이나 키카드처럼 보인다."
+        ],
+        "reasonings": [
+            "이 카드는 출입 제한 문과 관련된 물건일 가능성이 있다.",
+            "잠긴 문이 있는 공간에서 발견된 카드라면 출입 수단일 가능성이 높다."
+        ],
+        "conclusions": [
+            "이 카드는 잠긴 문과 관련 있을지도 모른다.",
+            "의자 위의 작은 카드가 중요한 물건처럼 보인다."
+        ],
+        "hints": [
             "의자 위의 작은 카드가 눈에 띈다.",
-            "저건 키카드 같은데... 출입증으로 쓰는 물건인가?",
-            "저 카드라면 잠긴 문과 관련된 출입 수단일지도 모른다.",
-            "기계 옆 의자에 카드가 놓여 있다... 그냥 버려진 물건은 아닌 것 같다.",
-            "이 카드라면 오른쪽의 잠긴 문과 연결될 가능성이 있다."
+            "저 카드라면 잠긴 문과 관련된 출입 수단일지도 모른다."
         ]
     },
-    "mainhall_two_chairs": {
-        "area_id": "MainHall",
-        "scenes": [
-            "Two chairs are visible near a machine.",
-            "Two chairs are placed side by side in the hall.",
-            "A pair of chairs is visible near a device.",
-            "There are two chairs in front of a machine.",
-            "Two seats are visible near a terminal.",
-            "The scene shows two chairs beside a machine-like object."
-        ],
-        "rag": "기계 근처에는 의자 두 개가 놓여 있다. 두 의자 중 하나에는 노트가 있고 다른 하나에는 키카드가 있을 수 있다. 의자 주변은 메인 홀 퍼즐의 핵심 단서 위치다.",
-        "reference": "기계 옆 의자들이 그냥 놓인 것 같지는 않다.",
-        "reasoning_policy": "두 의자와 기계를 근거로 추론한다. 노트와 키카드를 확정적으로 보았다고 말하지 않고, 주변에 물건이 남아 있을 가능성으로 말한다.",
-        "answers": [
-            "기계 옆 의자들이 묘하게 신경 쓰인다.",
-            "두 의자 주변에 뭔가 남겨진 물건이 있을지도 모른다.",
-            "의자들이 기계 앞에 놓여 있다... 누군가 사용하던 자리처럼 보인다.",
-            "저 의자 근처가 이 홀에서 가장 수상해 보인다.",
-            "잠긴 문과 관련된 단서는 기계 근처 의자 쪽에 있을 가능성이 높다."
-        ]
-    },
-    "mainhall_no_clue": {
-        "area_id": "MainHall",
-        "scenes": [
-            "A bright hall is visible with no clear important object.",
-            "Only walls, floor, and lighting are visible in the hall.",
-            "A plain hall is visible with no clear clue.",
-            "A bright corner or empty wall is visible.",
-            "No card, note, door, chair, or machine is clearly visible.",
-            "The scene contains no obvious interactable object in the hall."
-        ],
-        "rag": "현재 메인 홀 장면에서는 직접적인 단서가 확인되지 않는다. 메인 홀에서는 잠긴 문, 기계 주변, 의자 위 물건들이 주요 단서가 될 수 있다.",
-        "reference": "지금 보이는 것만으로는 확실한 단서를 찾기 어렵다.",
-        "reasoning_policy": "명확한 단서가 보이지 않는다고 말한다. 보이지 않는 키카드나 노트를 단정하지 않는다. 다만 메인 홀에서는 문이나 기계 주변을 의식할 수 있다.",
-        "answers": [
-            "지금 보이는 것만으로는 확실한 단서를 찾기 어렵다.",
-            "이 홀에는 단서가 있을 것 같지만, 지금 시야에는 뚜렷하게 보이지 않는다.",
-            "지금 장면만으로는 판단할 정보가 부족하다.",
-            "벽과 바닥만 봐서는 알 수 있는 게 거의 없다.",
-            "더 분명한 문이나 장치가 보여야 판단할 수 있을 것 같다."
-        ]
-    },
-    "labzone_red_corridor_corpses": {
-        "area_id": "LabZone",
-        "scenes": [
-            "A red-lit corridor contains bodies lying on the floor.",
-            "A dark hallway is illuminated by red light with corpses nearby.",
-            "Several bodies are visible in a red-lit corridor.",
-            "A corridor with red lighting and blood stains is visible.",
-            "A hallway contains bodies and red emergency lighting.",
-            "A red corridor has motionless figures lying on the ground."
-        ],
-        "rag": "메인 홀의 문을 열고 들어오면 붉은 빛의 복도가 나온다. 복도에는 시체들과 핏자국이 있다. 이 구역에서는 더 위험한 사건이 벌어진 것처럼 보인다.",
-        "reference": "붉은 빛에 시체까지... 이곳도 평범한 복도는 아닌 것 같다.",
-        "reasoning_policy": "붉은 빛의 복도와 시체를 근거로 추론한다. 연구실이나 퓨즈를 바로 단정하지 않고, 위험한 사건의 흔적으로만 말한다.",
-        "answers": [
-            "붉은 빛이 복도를 더 불길하게 만든다.",
-            "복도에 쓰러진 시체들을 보면 이곳도 안전한 장소는 아닌 것 같다.",
-            "붉은 조명과 시체들이 겹치니 여긴 평범한 복도가 아닌 것 같다.",
-            "이 구역에서도 무언가 끔찍한 일이 벌어진 흔적이 보인다.",
-            "시체들이 남아 있는 걸 보면 이 복도는 그냥 지나칠 수 없는 곳 같다."
-        ]
-    },
-    "labzone_lit_bathroom": {
-        "area_id": "LabZone",
-        "scenes": [
-            "A bathroom with lights on is visible on the left side of a corridor.",
-            "A lit restroom is visible in a dark hallway.",
-            "A bathroom entrance is illuminated in the corridor.",
-            "A bright bathroom can be seen beside a dark corridor.",
-            "A restroom with lights on is visible near the hallway.",
-            "A lit bathroom doorway is visible on the left."
-        ],
-        "rag": "붉은 복도를 지나면 왼쪽에 불이 켜진 화장실이 있다. 어두운 구역 안에서 화장실은 눈에 띄는 장소다. 화장실 안에는 퓨즈와 관련된 단서가 있을 수 있다.",
-        "reference": "저 화장실만 불이 켜져 있다... 그냥 지나치긴 어렵다.",
-        "reasoning_policy": "불이 켜진 화장실을 근거로 추론한다. 퓨즈를 확정하지 않고 눈에 띄는 조사 지점 정도로 말한다.",
-        "answers": [
-            "왼쪽 화장실만 불이 켜져 있는 게 신경 쓰인다.",
-            "어두운 복도에서 저렇게 밝은 곳이라면 뭔가 남아 있을 가능성이 있다.",
-            "저 화장실은 그냥 배경처럼 보이지 않는다.",
-            "불이 켜진 화장실이라면 누군가 최근까지 사용했을지도 모른다.",
-            "이 구역에서 저 화장실만 유난히 눈에 띈다."
-        ]
-    },
-    "labzone_bathroom_fusebox": {
-        "area_id": "LabZone",
-        "scenes": [
-            "An open fuse box is visible inside a bathroom.",
-            "A bathroom contains an open electrical fuse box.",
-            "A fuse box with all slots filled is visible in a restroom.",
-            "An electrical panel is open in a bathroom.",
-            "A restroom has an open fuse box on the wall.",
-            "A fuse panel inside the bathroom appears already filled."
-        ],
-        "rag": "화장실 안에는 열린 퓨즈 박스가 있다. 화장실 퓨즈 박스는 이미 퓨즈가 모두 채워져 있다. 화장실에는 여분의 퓨즈가 남아 있다.",
-        "reference": "퓨즈 박스는 이미 채워져 있는데... 왜 여분이 남아 있는 거지?",
-        "reasoning_policy": "화장실의 열린 퓨즈 박스와 여분의 퓨즈를 근거로 추론한다. 다른 위치에 쓰라고 직접 지시하지 않는다.",
-        "answers": [
-            "화장실의 퓨즈 박스가 이미 열려 있다.",
-            "퓨즈 박스가 다 채워져 있는데도 여분이 남아 있다는 점이 이상하다.",
-            "이미 채워진 퓨즈 박스라면 이곳의 문제는 아닌 것 같다.",
-            "남는 퓨즈가 있다면 다른 전원 문제와 관련이 있을지도 모른다.",
-            "이 박스는 멀쩡해 보이는데, 남은 퓨즈가 따로 있다는 게 신경 쓰인다."
-        ]
-    },
+
     "labzone_spare_fuse": {
         "area_id": "LabZone",
         "scenes": [
             "A spare fuse is visible near a fuse box.",
             "A small fuse is placed inside a bathroom.",
-            "An extra fuse is lying near an electrical panel.",
-            "A fuse-like object is visible beside an open fuse box.",
-            "A spare electrical fuse is visible in the restroom.",
-            "A small cylindrical fuse is lying near the fuse panel."
+            "An extra fuse is lying near an electrical panel."
         ],
-        "rag": "화장실에는 여분의 퓨즈가 있다. 다른 퓨즈 박스에는 퓨즈가 부족하다. 여분의 퓨즈는 어두운 복도 옆 퓨즈 박스와 관련될 수 있다.",
+        "rag": "화장실에는 여분의 퓨즈가 있다. 다른 퓨즈 박스에는 퓨즈가 부족하다.",
         "reference": "여분의 퓨즈가 남아 있다... 다른 곳에 필요할지도 모른다.",
-        "reasoning_policy": "여분의 퓨즈를 근거로 추론한다. 어디에 꽂으라고 행동 지시하지 않고, 부족한 전원과 연결될 가능성으로만 말한다.",
-        "answers": [
+        "reasoning_policy": "여분의 퓨즈를 근거로 추론한다. 어디에 꽂으라고 직접 말하지 않는다.",
+        "titles": ["남겨진 퓨즈", "전원 문제의 단서"],
+        "observations": [
+            "화장실 안에 여분으로 보이는 퓨즈가 남아 있다.",
+            "열린 퓨즈 박스 근처에 작은 전기 부품이 놓여 있다."
+        ],
+        "reasonings": [
+            "여분의 퓨즈가 남아 있다는 것은 다른 곳에 부족한 전원 부품이 있을 가능성을 암시한다.",
+            "이 퓨즈는 어두운 복도나 다른 퓨즈 박스와 연결될 수 있다."
+        ],
+        "conclusions": [
+            "이 퓨즈는 다른 곳에서 필요할지도 모른다.",
+            "전원 문제와 연결된 물건으로 보인다."
+        ],
+        "hints": [
             "이 퓨즈는 그냥 남겨진 물건처럼 보이지 않는다.",
-            "여분의 퓨즈라면 다른 곳의 전원을 되살리는 데 쓰일지도 모른다.",
-            "남는 퓨즈가 있다는 건 어딘가 부족한 곳이 있다는 뜻일지도 모른다.",
-            "이 작은 퓨즈가 다른 전기 장치와 연결될 가능성이 있다.",
-            "화장실에 남은 퓨즈가 이 구역의 전원 문제와 관련 있어 보인다."
+            "여분의 퓨즈라면 다른 곳의 전원을 되살리는 데 쓰일지도 모른다."
         ]
     },
-    "labzone_dark_corridor_switch_fusebox": {
-        "area_id": "LabZone",
-        "scenes": [
-            "A dark corridor is visible with a switch and fuse box nearby.",
-            "A dark hallway has a switch and closed fuse box on the wall.",
-            "A fuse box and light switch are visible beside a dark corridor.",
-            "A closed electrical panel is visible next to a switch.",
-            "A switch and fuse panel are located near a dark passage.",
-            "A dark corridor has an electrical box and switch nearby."
-        ],
-        "rag": "화장실을 지나면 왼쪽에 어두운 복도가 있다. 어두운 복도 옆에는 스위치와 퓨즈 박스가 있다. 이 퓨즈 박스는 처음에는 닫혀 있고 퓨즈가 부족하다.",
-        "reference": "스위치 옆의 퓨즈 박스가 수상하다... 전원이 부족한 건가?",
-        "reasoning_policy": "어두운 복도, 스위치, 퓨즈 박스를 근거로 추론한다. 퓨즈를 넣으라고 직접 말하지 않는다.",
-        "answers": [
-            "어두운 복도 옆의 스위치와 박스가 신경 쓰인다.",
-            "스위치가 있어도 퓨즈가 부족하면 불이 들어오지 않을 것 같다.",
-            "저 퓨즈 박스는 이 어두운 복도와 관련 있어 보인다.",
-            "스위치와 박스가 같이 있다면 전원 문제일 가능성이 있다.",
-            "이 어두운 복도는 근처 퓨즈 박스 상태와 연결되어 있을지도 모른다."
-        ]
-    },
-    "labzone_closed_fusebox_missing_fuse": {
-        "area_id": "LabZone",
-        "scenes": [
-            "A closed fuse box is visible near a switch.",
-            "A fuse box appears closed beside a dark hallway.",
-            "An electrical fuse box is located near a light switch.",
-            "A closed electrical panel is visible on the wall.",
-            "A wall-mounted fuse box is visible near a dark corridor.",
-            "A fuse panel near a switch appears to be missing a fuse."
-        ],
-        "rag": "어두운 복도 옆의 퓨즈 박스는 처음에는 닫혀 있다. 이 퓨즈 박스는 퓨즈가 부족한 상태다. 부족한 퓨즈를 채우면 복도 전원과 연결될 수 있다.",
-        "reference": "닫힌 퓨즈 박스가 수상하다... 안쪽이 비어 있는 건가?",
-        "reasoning_policy": "닫힌 퓨즈 박스와 부족한 퓨즈 상태를 근거로 추론한다. 정답을 직접 지시하지 않는다.",
-        "answers": [
-            "닫힌 퓨즈 박스가 이 어두운 복도와 관련 있어 보인다.",
-            "퓨즈가 부족하다면 스위치를 눌러도 제대로 작동하지 않을 것 같다.",
-            "이 박스 안쪽에 뭔가 비어 있을지도 모른다.",
-            "닫혀 있는 전기 박스가 이 구역의 문제를 숨기고 있는 것 같다.",
-            "부족한 퓨즈가 있다면 이 복도의 어둠과 관련 있을 가능성이 높다."
-        ]
-    },
-    "labzone_research_entrance_corpse": {
-        "area_id": "LabZone",
-        "scenes": [
-            "A corpse is visible near the entrance to a laboratory.",
-            "A body lies near a door leading to a research room.",
-            "A dead body is visible near a lab entrance.",
-            "A corpse is lying in front of a laboratory door.",
-            "A dark area contains a body near a research facility entrance.",
-            "A body is lying near the entrance of another room."
-        ],
-        "rag": "복도를 더 직진하면 시체가 있는 공간이 나온다. 그 공간은 연구실로 들어가는 입구와 연결된다. 연구실 입구 주변의 시체는 내부에서 벌어진 사건을 암시한다.",
-        "reference": "연구실 입구 앞에 시체가 있다... 안쪽에서 무슨 일이 있었던 거지?",
-        "reasoning_policy": "연구실 입구와 시체를 근거로 추론한다. 몬스터를 직접 단정하지 않고 내부 사건의 흔적으로만 말한다.",
-        "answers": [
-            "연구실 입구 근처의 시체가 신경 쓰인다.",
-            "누군가 연구실에 들어가기 전 이곳에서 쓰러진 것 같다.",
-            "이 시체는 연구실 안쪽에서 벌어진 일과 관련 있을지도 모른다.",
-            "입구 앞에 시체가 있다는 건 안쪽이 안전하지 않다는 뜻일지도 모른다.",
-            "연구실로 이어지는 곳에 이런 흔적이 남아 있다니 불길하다."
-        ]
-    },
+
     "labzone_research_room_overview": {
         "area_id": "LabZone",
         "scenes": [
             "A dark laboratory room contains tables and chairs.",
             "A research room with several tables and chairs is visible.",
-            "A laboratory contains desks, chairs, and scattered objects.",
-            "A dark lab room is lit by red light and contains tables.",
-            "A room with lab equipment, tables, chairs, and dark stains is visible.",
-            "A research area contains multiple workstations and scattered debris."
+            "A laboratory contains desks, chairs, and scattered objects."
         ],
-        "rag": "연구실 안에는 여러 테이블과 의자가 있다. 연구실에는 흩어진 물건과 어두운 얼룩이 보인다. 이 공간에는 퓨즈와 몬스터 정보 파일이 있을 수 있다.",
+        "rag": "연구실 안에는 여러 테이블과 의자가 있다. 연구실에는 흩어진 물건과 어두운 얼룩이 보인다.",
         "reference": "연구실 안에 물건들이 흩어져 있다... 중요한 단서가 남아 있을지도 모른다.",
-        "reasoning_policy": "연구실의 테이블, 의자, 흩어진 물건을 근거로 추론한다. 퓨즈와 파일을 확정하지 않고 단서가 남아 있을 가능성으로 말한다.",
-        "answers": [
-            "연구실 안은 물건들이 흩어져 있어 뭔가 남아 있을 것 같다.",
-            "테이블과 의자 주변에 중요한 단서가 남아 있을 가능성이 있다.",
-            "이곳은 단순한 방이 아니라 무언가를 연구하던 공간 같다.",
-            "흩어진 장비와 테이블을 보면 급하게 버려진 연구실처럼 보인다.",
-            "연구실 안쪽에는 이 사건을 설명할 단서가 남아 있을지도 모른다."
-        ]
-    },
-    "labzone_lab_fuse": {
-        "area_id": "LabZone",
-        "scenes": [
-            "A fuse is visible on a table in the laboratory.",
-            "A small fuse is lying on a lab table.",
-            "A fuse-like object is visible among scattered lab objects.",
-            "A small electrical fuse is placed on a desk in the lab.",
-            "A fuse is visible near laboratory equipment.",
-            "A small cylindrical fuse is lying in the research room."
+        "reasoning_policy": "연구실의 테이블, 의자, 흩어진 물건을 근거로 추론한다.",
+        "titles": ["흩어진 연구실", "버려진 실험 공간"],
+        "observations": [
+            "연구실 안에는 여러 테이블과 의자가 있고 물건들이 흩어져 있다.",
+            "실험 공간처럼 보이는 방 안에 장비와 가구가 남아 있다."
         ],
-        "rag": "연구실 안에는 퓨즈 하나가 있다. 이 퓨즈는 부족한 퓨즈 박스와 관련될 수 있다. 퓨즈는 어두운 복도 전원 문제를 해결하는 데 필요할 수 있다.",
-        "reference": "연구실 안에 퓨즈가 있다... 전원 문제와 관련이 있을지도 모른다.",
-        "reasoning_policy": "연구실 안의 퓨즈를 근거로 추론한다. 어디에 사용하라고 직접 말하지 않고 전원 문제와 관련될 가능성으로 말한다.",
-        "answers": [
-            "연구실 안의 작은 퓨즈가 눈에 띈다.",
-            "이 퓨즈라면 어딘가 부족한 전원을 채우는 데 쓰일지도 모른다.",
-            "연구실에 퓨즈가 남아 있다면 우연은 아닐 것 같다.",
-            "이 작은 부품이 어두운 복도 쪽 문제와 연결될 가능성이 있다.",
-            "전기 장치가 많은 구역에서 퓨즈가 남아 있다는 게 신경 쓰인다."
+        "reasonings": [
+            "이곳은 단순한 방이 아니라 연구나 실험이 이루어지던 공간으로 보인다.",
+            "흩어진 물건들 사이에 사건을 설명할 단서가 남아 있을 가능성이 있다."
+        ],
+        "conclusions": [
+            "연구실 안에는 중요한 단서가 남아 있을 것 같다.",
+            "이 공간은 사건의 원인을 이해하는 데 중요한 장소처럼 보인다."
+        ],
+        "hints": [
+            "연구실 안은 물건들이 흩어져 있어 뭔가 남아 있을 것 같다.",
+            "테이블과 의자 주변에 중요한 단서가 남아 있을 가능성이 있다."
         ]
     },
+
     "labzone_monster_file": {
         "area_id": "LabZone",
         "scenes": [
             "A file or document is visible on a lab table.",
             "A monster information file is visible in the laboratory.",
-            "A document is placed among laboratory objects.",
-            "A research file is lying on a table in the lab.",
-            "A paper file with information is visible in a research room.",
-            "A document related to a creature or monster is visible."
+            "A research file is lying on a table in the lab."
         ],
-        "rag": "연구실 안에는 몬스터에 대한 정보 파일이 있다. 파일은 연구실에서 벌어진 실험이나 사건과 관련될 수 있다. 파일은 몬스터의 정체나 위험성을 암시할 수 있다.",
+        "rag": "연구실 안에는 몬스터에 대한 정보 파일이 있다. 파일은 연구실에서 벌어진 실험이나 사건과 관련될 수 있다.",
         "reference": "저 파일... 이곳에서 무슨 실험이 있었는지 적혀 있을지도 모른다.",
-        "reasoning_policy": "연구실 안의 파일과 문서를 근거로 추론한다. 파일 내용을 지어내지 않고 몬스터나 실험과 관련될 가능성으로만 말한다.",
-        "answers": [
-            "연구실 안의 파일이 신경 쓰인다.",
-            "저 파일에는 이곳에서 무슨 실험이 있었는지 적혀 있을지도 모른다.",
-            "몬스터에 대한 기록이라면 그냥 넘길 수는 없다.",
-            "이 문서는 연구실에서 벌어진 일을 설명하는 단서일지도 모른다.",
-            "파일에 적힌 내용이 이 구역의 위험과 관련 있을 가능성이 있다."
-        ]
-    },
-    "labzone_no_clue": {
-        "area_id": "LabZone",
-        "scenes": [
-            "A dark laboratory area is visible with no clear important object.",
-            "Only walls, floor, and red lighting are visible in the lab zone.",
-            "A plain dark corridor is visible with no clear clue.",
-            "A dark corner or empty wall is visible in the laboratory area.",
-            "No fuse, document, switch, fuse box, bathroom, corpse, or table is clearly visible.",
-            "The scene contains no obvious interactable object in the lab zone."
+        "reasoning_policy": "연구실 안의 파일과 문서를 근거로 추론한다. 파일 내용을 지어내지 않는다.",
+        "titles": ["몬스터 정보 파일", "연구 기록"],
+        "observations": [
+            "연구실 테이블 위에 문서나 파일이 놓여 있다.",
+            "실험 공간 안에 무언가를 기록한 파일이 남아 있다."
         ],
-        "rag": "현재 LabZone 장면에서는 직접적인 단서가 확인되지 않는다. LabZone에서는 화장실 퓨즈, 어두운 복도 옆 퓨즈 박스, 연구실 내부의 파일과 퓨즈가 주요 단서가 될 수 있다.",
-        "reference": "지금 시야에는 확실한 단서가 보이지 않는다.",
-        "reasoning_policy": "명확한 단서가 보이지 않는다고 말한다. 보이지 않는 퓨즈, 파일, 시체를 단정하지 않는다. 다만 LabZone의 주요 단서 위치를 의식할 수 있다.",
-        "answers": [
-            "지금 보이는 것만으로는 확실한 단서를 찾기 어렵다.",
-            "이 구역에는 단서가 있을 것 같지만, 지금 장면만으로는 부족하다.",
-            "지금 시야에는 눈에 띄는 물건이 없다.",
-            "벽과 어두운 조명만으로는 판단하기 어렵다.",
-            "더 분명한 퓨즈 박스나 연구실 물건이 보여야 알 수 있을 것 같다."
+        "reasonings": [
+            "이 파일은 연구실에서 벌어진 실험이나 사건과 관련된 기록일 가능성이 있다.",
+            "문서 내용은 이 구역의 위험이나 몬스터의 정체를 이해하는 단서가 될 수 있다."
+        ],
+        "conclusions": [
+            "이 파일은 연구실 사건을 이해하는 핵심 단서일지도 모른다.",
+            "몬스터와 관련된 기록이라면 그냥 넘길 수 없다."
+        ],
+        "hints": [
+            "연구실 안의 파일이 신경 쓰인다.",
+            "저 파일에는 이곳에서 무슨 실험이 있었는지 적혀 있을지도 모른다."
         ]
     }
 }
+
 
 data = []
 
 for scene_type, info in scene_types.items():
     for scene in info["scenes"]:
-        for answer in info["answers"]:
+        for _ in range(25):
             data.append({
                 "area_id": info["area_id"],
                 "scene_type": scene_type,
@@ -571,22 +253,20 @@ for scene_type, info in scene_types.items():
                 "rag": info["rag"],
                 "reference_answer": info["reference"],
                 "reasoning_policy": info["reasoning_policy"],
-                "answer": answer
+                "title": random.choice(info["titles"]),
+                "observation": random.choice(info["observations"]),
+                "reasoning": random.choice(info["reasonings"]),
+                "conclusion": random.choice(info["conclusions"]),
+                "hint": random.choice(info["hints"])
             })
 
 augmented_data = []
 
 for item in data:
     augmented_data.append(item)
-
     augmented_data.append({
         **item,
         "scene": "The current image shows " + item["scene"]
-    })
-
-    augmented_data.append({
-        **item,
-        "scene": "In the scene, " + item["scene"]
     })
 
 random.shuffle(augmented_data)

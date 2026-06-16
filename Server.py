@@ -19,7 +19,6 @@ from transformers import (
 )
 
 from peft import PeftModel
-
 from langgraph.graph import StateGraph, START, END
 
 
@@ -30,7 +29,9 @@ RAG_DATA_PATH = "puzzle_docs.json"
 
 LLAVA_MODEL_ID = "llava-hf/llava-onevision-qwen2-0.5b-ov-hf"
 GEMMA_MODEL_ID = "google/gemma-4-E2B-it"
-LORA_PATH = "gemma_hint_lora"
+
+# 사건 일지 JSON 생성용 LoRA
+LORA_PATH = "gemma_journal_lora"
 
 RETRIEVAL_MODEL_ID = "sentence-transformers/all-MiniLM-L6-v2"
 
@@ -38,6 +39,9 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 
 app = Flask(__name__)
+
+# 시연 환경이 느리면 False로 바꾸면 검증 단계를 건너뜁니다.
+USE_JOURNAL_VALIDATION = True
 
 
 # RAG 문서 로드 및 검색용 데이터 정규화
@@ -71,8 +75,18 @@ def load_rag_data(path):
             raise ValueError(f"RAG data missing search_scene/search_scenes at item {idx}")
 
         rag_text = " ".join(facts)
-        reference_answer = hint_examples[0] if hint_examples else "지금 보이는 것만으로는 확실한 단서를 찾기 어렵다."
-        answer = hint_examples[1] if len(hint_examples) > 1 else reference_answer
+
+        reference_answer = (
+            hint_examples[0]
+            if hint_examples
+            else "지금 보이는 것만으로는 확실한 단서를 찾기 어렵다."
+        )
+
+        answer = (
+            hint_examples[1]
+            if len(hint_examples) > 1
+            else reference_answer
+        )
 
         for search_scene in search_scenes:
             normalized.append({
@@ -88,6 +102,7 @@ def load_rag_data(path):
                 "hint_by_level": item.get("hint_by_level", {}),
                 "director_tags": item.get("director_tags", []),
                 "director_action": item.get("director_action", {}),
+                "journal": item.get("journal", {}),
             })
 
     if not normalized:
@@ -112,13 +127,6 @@ llava_model.eval()
 print("Loading Retrieval Embedding Model...")
 retrieval_model = SentenceTransformer(RETRIEVAL_MODEL_ID)
 
-rag_scene_texts = [item["scene"] for item in rag_data]
-
-rag_scene_embeddings = retrieval_model.encode(
-    rag_scene_texts,
-    normalize_embeddings=True,
-)
-
 
 print("Loading Gemma Base...")
 tokenizer = AutoTokenizer.from_pretrained(GEMMA_MODEL_ID)
@@ -133,7 +141,7 @@ base_model = AutoModelForCausalLM.from_pretrained(
 )
 
 
-print("Loading Gemma LoRA...")
+print("Loading Gemma Journal LoRA...")
 gemma_model = PeftModel.from_pretrained(base_model, LORA_PATH)
 gemma_model.eval()
 
@@ -148,34 +156,24 @@ LLAVA_PROMPT = (
 )
 
 
-SYSTEM_PROMPT = """너는 공포 퍼즐 게임의 주인공 추론형 독백을 생성한다.
+SYSTEM_PROMPT = """너는 공포 퍼즐 게임의 AI 사건 기록 시스템이다.
 
 반드시 지켜라:
-- 단순 감상문이 아니라 관찰을 바탕으로 추론한다.
-- 문장 구조는 '보이는 것 → 의심/추론' 형태로 만든다.
-- 정답을 직접 말하지 않는다.
+- 현재 장면과 RAG 정보만 근거로 사건 일지를 작성한다.
+- RAG에 없는 물체, 위치, 해결 방법을 만들지 않는다.
 - 행동 지시를 하지 않는다.
-- '~하자', '~해야 한다', '~봐야 한다'를 쓰지 않는다.
-- RAG에 없는 물체나 해결 방법을 만들지 않는다.
-- 한 문장만 출력한다.
-
-좋은 예:
-'문 옆의 장치를 보면... 그냥 열 수 있는 문은 아닌 것 같다.'
-'피가 이렇게 튄 걸 보면... 단순한 사고는 아닌 것 같다.'
-'책상 주변에 물건들이 흩어져 있다... 뭔가 남아 있을지도 모른다.'
-
-나쁜 예:
-'이건 단순한 사고가 아니다.'
-'이곳은 기분 나쁘다.'
-'책상을 조사해보자.'
-'키카드를 찾아야 한다.'"""
+- 관찰은 화면에서 보이는 사실 중심으로 쓴다.
+- 추론은 관찰을 바탕으로 한 가능성으로 쓴다.
+- 결론은 플레이어가 기록한 짧은 판단처럼 쓴다.
+- hint는 인게임에 바로 출력할 짧은 주인공 독백 한 문장으로 쓴다.
+- 반드시 JSON만 출력한다.
+- JSON 키는 title, observation, reasoning, conclusion, hint만 사용한다.
+"""
 
 
-DEFAULT_REASONING_POLICY = """기준 독백의 의미를 가장 우선한다.
-scene은 현재 이미지 상황을 참고하기 위한 정보다.
-rag는 기준 독백이 어떤 퍼즐 맥락인지 확인하기 위한 정보다.
-기준 독백에 없는 새로운 행동, 위치, 물체, 해결 방법을 추가하지 않는다.
-짧고 진중한 주인공 독백형으로 출력한다."""
+DEFAULT_REASONING_POLICY = """RAG 정보의 의미를 유지한다.
+새 물체, 해결 방법, 행동 지시를 추가하지 않는다.
+관찰, 추론, 결론, 힌트를 서로 다른 역할로 작성한다."""
 
 
 # 이미지 크기 축소
@@ -194,10 +192,7 @@ def analyze_image_with_llava(image_bytes):
             "role": "user",
             "content": [
                 {"type": "image"},
-                {
-                    "type": "text",
-                    "text": LLAVA_PROMPT,
-                },
+                {"type": "text", "text": LLAVA_PROMPT},
             ],
         }
     ]
@@ -255,10 +250,7 @@ def retrieve_best_rag(scene_text, area_id=None, top_k=3):
         normalize_embeddings=True,
     )
 
-    scores = cosine_similarity(
-        query_embedding,
-        candidate_embeddings,
-    )[0]
+    scores = cosine_similarity(query_embedding, candidate_embeddings)[0]
 
     top_local_indices = np.argsort(scores)[::-1][:top_k]
 
@@ -269,25 +261,24 @@ def retrieve_best_rag(scene_text, area_id=None, top_k=3):
         item = rag_data[rag_idx]
         score = float(scores[local_idx])
 
-        results.append(
-            {
-                "score": score,
-                "id": item.get("id", ""),
-                "area_id": item.get("area_id", ""),
-                "scene_type": item.get("scene_type", "unknown"),
-                "scene": item["scene"],
-                "rag": item["rag"],
-                "reference_answer": item["reference_answer"],
-                "answer": item.get("answer", item["reference_answer"]),
-                "reasoning_policy": item.get(
-                    "reasoning_policy",
-                    DEFAULT_REASONING_POLICY,
-                ) or DEFAULT_REASONING_POLICY,
-                "hint_by_level": item.get("hint_by_level", {}),
-                "director_tags": item.get("director_tags", []),
-                "director_action": item.get("director_action", {}),
-            }
-        )
+        results.append({
+            "score": score,
+            "id": item.get("id", ""),
+            "area_id": item.get("area_id", ""),
+            "scene_type": item.get("scene_type", "unknown"),
+            "scene": item["scene"],
+            "rag": item["rag"],
+            "reference_answer": item["reference_answer"],
+            "answer": item.get("answer", item["reference_answer"]),
+            "reasoning_policy": item.get(
+                "reasoning_policy",
+                DEFAULT_REASONING_POLICY,
+            ) or DEFAULT_REASONING_POLICY,
+            "hint_by_level": item.get("hint_by_level", {}),
+            "director_tags": item.get("director_tags", []),
+            "director_action": item.get("director_action", {}),
+            "journal": item.get("journal", {}),
+        })
 
     return results
 
@@ -300,10 +291,11 @@ def select_primary_rag(rag_results, threshold=0.55):
             "scene_type": "unknown",
             "scene": "",
             "rag": "단서 없음",
-            "reference_answer": "잘 모르겠군.",
-            "answer": "잘 모르겠군.",
+            "reference_answer": "지금 보이는 것만으로는 확실한 단서를 찾기 어렵다.",
+            "answer": "지금 보이는 것만으로는 확실한 단서를 찾기 어렵다.",
             "reasoning_policy": DEFAULT_REASONING_POLICY,
             "hint_by_level": {},
+            "journal": {},
         }
 
     primary = rag_results[0]
@@ -313,7 +305,7 @@ def select_primary_rag(rag_results, threshold=0.55):
             "score": primary["score"],
             "scene_type": "no_clue",
             "scene": primary["scene"],
-            "rag": "단서 없음",
+            "rag": "현재 장면에서는 직접적인 단서가 확인되지 않는다.",
             "reference_answer": "지금 보이는 것만으로는 확실한 단서를 찾기 어렵다.",
             "answer": "지금 보이는 것만으로는 확실한 단서를 찾기 어렵다.",
             "reasoning_policy": DEFAULT_REASONING_POLICY,
@@ -322,6 +314,7 @@ def select_primary_rag(rag_results, threshold=0.55):
                 "2": "이 장면만으로는 판단할 정보가 부족하다.",
                 "3": "현재 시야에는 직접적인 단서가 없으니 다른 대상을 기준으로 판단해야 할 것 같다.",
             },
+            "journal": {},
         }
 
     return primary
@@ -353,8 +346,9 @@ def decide_hint_level(hint_count, area_stay_time):
 
     return 1
 
-# Gemma 입력 프롬프트 생성
-def build_gemma_prompt(scene, rag, reference_answer, reasoning_policy=None, hint_count=1):
+
+# Gemma 사건 일지 생성 프롬프트 생성
+def build_journal_prompt(scene, rag, reference_answer, reasoning_policy=None, hint_count=1):
     if reasoning_policy is None or str(reasoning_policy).strip() == "":
         reasoning_policy = DEFAULT_REASONING_POLICY
 
@@ -367,79 +361,114 @@ def build_gemma_prompt(scene, rag, reference_answer, reasoning_policy=None, hint
 [RAG 정보]
 {rag}
 
-[기준 독백]
+[기준 힌트]
 {reference_answer}
 
 [추론 규칙]
 {reasoning_policy}
 
-보이는 단서를 바탕으로 짧게 추론하는 주인공 독백 한 문장으로 바꿔라.
-이전 힌트와 같은 문장을 반복하지 말고, 같은 의미를 다른 표현으로 말하라.
-현재 힌트 요청 횟수는 {hint_count}회다.<end_of_turn>
+[힌트 요청 횟수]
+{hint_count}
+
+현재 장면을 바탕으로 사건 일지를 JSON 형식으로 출력하라.<end_of_turn>
 <start_of_turn>model
 """
 
 
-# Gemma 출력 후 불필요한 토큰 제거
-def clean_hint(text):
-    hint = text.strip()
+# Gemma 출력에서 JSON만 추출
+def extract_json_object(text):
+    text = text.strip()
 
-    remove_tokens = [
-        "<end_thought>",
-        "<end_sequence>",
-        "<turn|>",
-        "<eos>",
-        "<end_of_turn>",
-        "<start_of_turn>",
-        "<end_start_turn_>",
-        "<end_>",
-        "<start_>",
-        "model",
-        "user",
-    ]
+    decoder = json.JSONDecoder()
 
-    for token in remove_tokens:
-        hint = hint.replace(token, "")
+    start = text.find("{")
+    if start == -1:
+        raise ValueError("JSON object not found in model output.")
 
-    for bad in [
-        "힌트:",
-        "독백:",
-        "정답:",
-        "출력:",
-        "Answer:",
-        "Hint:",
-    ]:
-        hint = hint.replace(bad, "")
+    obj, end = decoder.raw_decode(text[start:])
 
-    hint = hint.replace("\n", " ").strip()
-    hint = hint.strip("\"'“”‘’<>_ ")
+    if not isinstance(obj, dict):
+        raise ValueError("Decoded JSON is not an object.")
 
-    while "  " in hint:
-        hint = hint.replace("  ", " ")
-
-    return hint
+    return obj
 
 
-# Gemma-LoRA를 이용한 최종 힌트 생성
-def generate_hint(scene_text, rag_results, hint_level=1, hint_count=1):
+# 빈 값 방지용 fallback 사건 일지
+def make_fallback_journal(area_id, primary_rag, hint, hint_level, scene_text):
+    scene_type = primary_rag.get("scene_type", "unknown")
+    rag = primary_rag.get("rag", "현재 장면에서는 직접적인 단서가 확인되지 않는다.")
+
+    title_map = {
+        "spawn_corpse": "의문의 시체",
+        "hallway_corpses": "복도의 시체들",
+        "locked_private_door": "잠긴 PRIVATE 문",
+        "rest_area": "직원 휴게 공간",
+        "office_desk": "사무 공간",
+        "blood_stains_only": "핏자국",
+        "keycard": "수상한 출입 카드",
+        "bright_hall": "중앙 로비",
+        "locked_door": "잠긴 문",
+        "machine_area": "기계 주변의 흔적",
+        "note_on_chair": "의자 위의 노트",
+        "keycard_on_chair": "의자 위의 키카드",
+        "two_chairs": "기계 옆 의자",
+        "spare_fuse": "남겨진 퓨즈",
+        "dark_corridor_switch_fusebox": "어두운 복도와 퓨즈 박스",
+        "research_room_overview": "흩어진 연구실",
+        "monster_file": "몬스터 정보 파일",
+        "no_clue": "불확실한 장면",
+    }
+
+    title = title_map.get(scene_type, scene_type)
+
+    return {
+        "title": title,
+        "area": area_id,
+        "scene_type": scene_type,
+        "observation": rag,
+        "reasoning": hint,
+        "conclusion": hint,
+        "hint": hint,
+        "hint_level": hint_level,
+        "matched_score": primary_rag.get("score", 0.0),
+        "scene": scene_text,
+    }
+
+
+# Gemma-LoRA를 이용한 사건 일지 + 힌트 생성
+def generate_journal(scene_text, rag_results, hint_level=1, hint_count=1):
     primary_rag = select_primary_rag(rag_results)
     rag_context = build_rag_context(rag_results)
 
     hint_by_level = primary_rag.get("hint_by_level", {})
     level_key = str(hint_level)
 
-    selected_reference_answer = primary_rag["reference_answer"]
+    selected_reference_answer = primary_rag.get(
+        "reference_answer",
+        "지금 보이는 것만으로는 확실한 단서를 찾기 어렵다."
+    )
 
     if hint_by_level and level_key in hint_by_level:
         selected_reference_answer = hint_by_level[level_key]
 
+    # no_clue는 모델 생성이 이상해질 수 있어서 fallback 중심
     if primary_rag.get("scene_type") == "no_clue":
-        return selected_reference_answer, primary_rag, rag_context
-    
-    if hint_level >= 3:
-        return f"확실한 단서다. {primary_rag['rag']}", primary_rag, rag_context
-    
-    prompt = build_gemma_prompt(
+        hint = selected_reference_answer
+
+        journal_file = make_fallback_journal(
+            area_id=primary_rag.get("area_id", ""),
+            primary_rag=primary_rag,
+            hint=hint,
+            hint_level=hint_level,
+            scene_text=scene_text,
+        )
+
+        journal_file["validation_passed"] = True
+        journal_file["validation_result"] = "NO_CLUE_FALLBACK"
+
+        return hint, journal_file, primary_rag, rag_context
+
+    prompt = build_journal_prompt(
         scene=scene_text,
         rag=primary_rag["rag"],
         reference_answer=selected_reference_answer,
@@ -455,35 +484,115 @@ def generate_hint(scene_text, rag_results, hint_level=1, hint_count=1):
 
     with torch.no_grad():
         output = gemma_model.generate(
-    **inputs,
-    max_new_tokens=80,
-    do_sample=True,
-    temperature=0.75,
-    top_p=0.92,
-    repetition_penalty=1.08,
-    pad_token_id=tokenizer.eos_token_id,
-    eos_token_id=tokenizer.eos_token_id,
-)
+            **inputs,
+            max_new_tokens=120,
+            do_sample=False,
+            repetition_penalty=1.05,
+            pad_token_id=tokenizer.eos_token_id,
+            eos_token_id=tokenizer.eos_token_id,
+        )
 
     generated_ids = output[0][inputs["input_ids"].shape[-1]:]
 
     result = tokenizer.decode(
         generated_ids,
         skip_special_tokens=True,
-    )
+    ).strip()
 
-    hint = clean_hint(result)
+    try:
+        journal_json = extract_json_object(result)
 
-    if len(hint.strip()) < 5:
-        hint = selected_reference_answer
+        title = str(journal_json.get("title", "")).strip()
+        observation = str(journal_json.get("observation", "")).strip()
+        reasoning = str(journal_json.get("reasoning", "")).strip()
+        conclusion = str(journal_json.get("conclusion", "")).strip()
+        hint = str(journal_json.get("hint", "")).strip()
 
-    return hint, primary_rag, rag_context
+        if not title:
+            title = primary_rag.get("scene_type", "unknown")
 
-# Gemma를 이용한 힌트 적절성 평가
-def evaluate_hint_with_ai(scene_text, rag, hint, hint_level):
-    evaluation_prompt = f"""<start_of_turn>user
-너는 게임 힌트 검수자다.
-다음 힌트가 출력해도 되는 힌트인지 판단하라.
+        if not observation:
+            observation = primary_rag.get("rag", "")
+
+        if not reasoning:
+            reasoning = selected_reference_answer
+
+        if not conclusion:
+            conclusion = selected_reference_answer
+
+        if not hint:
+            hint = selected_reference_answer
+
+        investigation_file = {
+            "title": title,
+            "area": primary_rag.get("area_id", ""),
+            "scene_type": primary_rag.get("scene_type", "unknown"),
+            "observation": observation,
+            "reasoning": reasoning,
+            "conclusion": conclusion,
+            "hint": hint,
+            "hint_level": hint_level,
+            "matched_score": primary_rag.get("score", 0.0),
+            "scene": scene_text,
+        }
+
+        if USE_JOURNAL_VALIDATION:
+            passed, validation_result = validate_journal_with_ai(
+                scene_text=scene_text,
+                rag=primary_rag.get("rag", ""),
+                investigation_file=investigation_file,
+            )
+        else:
+            passed, validation_result = True, "SKIPPED"
+
+        investigation_file["validation_passed"] = passed
+        investigation_file["validation_result"] = validation_result
+
+        if not passed:
+            print("JOURNAL VALIDATION FAILED:", validation_result)
+
+            fallback_hint = selected_reference_answer
+
+            fallback_file = make_fallback_journal(
+                area_id=primary_rag.get("area_id", ""),
+                primary_rag=primary_rag,
+                hint=fallback_hint,
+                hint_level=hint_level,
+                scene_text=scene_text,
+            )
+
+            fallback_file["validation_passed"] = False
+            fallback_file["validation_result"] = validation_result
+
+            return fallback_hint, fallback_file, primary_rag, rag_context
+
+        return hint, investigation_file, primary_rag, rag_context
+
+    except Exception as e:
+        print("JOURNAL JSON PARSE FAILED:", str(e))
+        print("RAW OUTPUT:", result)
+
+        fallback_hint = selected_reference_answer
+
+        investigation_file = make_fallback_journal(
+            area_id=primary_rag.get("area_id", ""),
+            primary_rag=primary_rag,
+            hint=fallback_hint,
+            hint_level=hint_level,
+            scene_text=scene_text,
+        )
+
+        investigation_file["validation_passed"] = False
+        investigation_file["validation_result"] = "JSON_PARSE_FAILED"
+
+        return fallback_hint, investigation_file, primary_rag, rag_context
+
+
+# Gemma를 이용한 사건 일지 검증
+def validate_journal_with_ai(scene_text, rag, investigation_file):
+    validation_prompt = f"""<start_of_turn>user
+너는 공포 퍼즐 게임의 AI 사건 일지 검수자다.
+다음 사건 일지가 출력해도 되는지 판단하라.
 
 [장면]
 {scene_text}
@@ -491,24 +600,22 @@ def evaluate_hint_with_ai(scene_text, rag, hint, hint_level):
 [RAG 정보]
 {rag}
 
-[힌트 레벨]
-{hint_level}
-
-[생성된 힌트]
-{hint}
+[사건 일지]
+{json.dumps(investigation_file, ensure_ascii=False)}
 
 PASS 기준:
-- 힌트가 RAG 정보와 의미상 크게 맞으면 PASS
-- RAG의 표현을 다르게 말한 정도면 PASS
-- 공포 게임 주인공 독백처럼 자연스러우면 PASS
-- 힌트 레벨 1, 2에서는 정답을 직접 말하지 않으면 PASS
+- 사건 일지가 RAG 정보와 의미상 맞으면 PASS
+- 관찰, 추론, 결론, 힌트가 서로 역할이 나뉘어 있으면 PASS
+- RAG의 내용을 다른 표현으로 말한 정도면 PASS
+- 공포 퍼즐 게임의 사건 기록처럼 자연스러우면 PASS
 
 FAIL 기준:
 - RAG에 없는 물체, 위치, 해결 방법을 새로 만들면 FAIL
-- RAG에 없는 '몬스터', '괴물', '실험체'를 말하면 FAIL
+- RAG에 없는 몬스터, 괴물, 실험체를 단정하면 FAIL
 - '~하자', '~해야 한다', '~찾아야 한다', '~확인해야 한다' 같은 행동 지시가 있으면 FAIL
+- observation, reasoning, conclusion, hint가 거의 같은 문장이면 FAIL
+- JSON 필드가 비어 있으면 FAIL
 - 문장이 한국어로 어색해서 의미가 이상하면 FAIL
-- 힌트가 RAG와 반대 의미면 FAIL
 
 주의:
 - 너무 엄격하게 판단하지 마라.
@@ -518,7 +625,7 @@ FAIL 기준:
 """
 
     inputs = tokenizer(
-        evaluation_prompt,
+        validation_prompt,
         return_tensors="pt",
         add_special_tokens=False,
     ).to(gemma_model.device)
@@ -526,7 +633,7 @@ FAIL 기준:
     with torch.no_grad():
         output = gemma_model.generate(
             **inputs,
-            max_new_tokens=10,
+            max_new_tokens=8,
             do_sample=False,
             pad_token_id=tokenizer.eos_token_id,
             eos_token_id=tokenizer.eos_token_id,
@@ -540,48 +647,10 @@ FAIL 기준:
     ).strip().upper()
 
     if "FAIL" in result:
-        return False, "FAIL"
+        return False, result
 
-    return True, "PASS"
+    return True, result
 
-# LangGraph 노드: 생성된 힌트 검수
-def node_evaluate_hint(state: HintGraphState) -> dict:
-    print("[LangGraph] node_evaluate_hint 실행")
-
-    primary_rag = state["primary_rag"]
-    hint = state["hint"]
-    hint_level = state["hint_level"]
-
-    if hint_level >= 3:
-        return {
-            "hint_passed": True,
-            "evaluation_reason": "Level 3 uses RAG directly",
-        }
-
-    passed, reason = evaluate_hint_with_ai(
-        scene_text=state["scene"],
-        rag=primary_rag.get("rag", ""),
-        hint=hint,
-        hint_level=hint_level,
-    )
-
-    if passed:
-        return {
-            "hint_passed": True,
-            "evaluation_reason": reason,
-        }
-
-    hint_by_level = primary_rag.get("hint_by_level", {})
-    fallback_hint = hint_by_level.get(
-        str(hint_level),
-        primary_rag.get("reference_answer", "지금 보이는 것만으로는 확실한 단서를 찾기 어렵다.")
-    )
-
-    return {
-        "hint": fallback_hint,
-        "hint_passed": False,
-        "evaluation_reason": reason,
-    }
 
 class HintGraphState(TypedDict):
     area_id: str
@@ -589,6 +658,7 @@ class HintGraphState(TypedDict):
     scene: str
     rag_results: List[Dict[str, Any]]
     hint: str
+    investigation_file: Dict[str, Any]
     primary_rag: Dict[str, Any]
     rag_context: str
     hint_count: int
@@ -597,8 +667,6 @@ class HintGraphState(TypedDict):
     objective_id: str
     last_interaction: str
     hint_level: int
-    hint_passed: bool
-    evaluation_reason: str
 
 
 # LangGraph 노드: 이미지 분석
@@ -617,9 +685,9 @@ def node_retrieve_rag(state: HintGraphState) -> dict:
     print("[LangGraph] node_retrieve_rag 실행")
 
     rag_results = retrieve_best_rag(
-    scene_text=state["scene"],
-    area_id=state["area_id"],
-    top_k=3,
+        scene_text=state["scene"],
+        area_id=state["area_id"],
+        top_k=3,
     )
 
     return {
@@ -641,11 +709,11 @@ def node_decide_hint_level(state: HintGraphState) -> dict:
     }
 
 
-# LangGraph 노드: 최종 힌트 생성
-def node_generate_hint(state: HintGraphState) -> dict:
-    print("[LangGraph] node_generate_hint 실행")
+# LangGraph 노드: 사건 일지와 힌트 생성
+def node_generate_journal(state: HintGraphState) -> dict:
+    print("[LangGraph] node_generate_journal 실행")
 
-    hint, primary_rag, rag_context = generate_hint(
+    hint, investigation_file, primary_rag, rag_context = generate_journal(
         scene_text=state["scene"],
         rag_results=state["rag_results"],
         hint_level=state["hint_level"],
@@ -654,6 +722,7 @@ def node_generate_hint(state: HintGraphState) -> dict:
 
     return {
         "hint": hint,
+        "investigation_file": investigation_file,
         "primary_rag": primary_rag,
         "rag_context": rag_context,
     }
@@ -666,15 +735,13 @@ def build_hint_graph():
     graph.add_node("analyze_image", node_analyze_image)
     graph.add_node("retrieve_rag", node_retrieve_rag)
     graph.add_node("decide_hint_level", node_decide_hint_level)
-    graph.add_node("generate_hint", node_generate_hint)
-    graph.add_node("evaluate_hint", node_evaluate_hint)
+    graph.add_node("generate_journal", node_generate_journal)
 
     graph.add_edge(START, "analyze_image")
     graph.add_edge("analyze_image", "retrieve_rag")
     graph.add_edge("retrieve_rag", "decide_hint_level")
-    graph.add_edge("decide_hint_level", "generate_hint")
-    graph.add_edge("generate_hint", "evaluate_hint")
-    graph.add_edge("evaluate_hint", END)
+    graph.add_edge("decide_hint_level", "generate_journal")
+    graph.add_edge("generate_journal", END)
 
     return graph.compile()
 
@@ -682,7 +749,7 @@ def build_hint_graph():
 hint_graph = build_hint_graph()
 
 
-# Unreal에서 이미지와 플레이어 상태를 받아 힌트 반환
+# Unreal에서 이미지와 플레이어 상태를 받아 힌트와 사건 일지 반환
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
@@ -707,6 +774,7 @@ def predict():
             "scene": "",
             "rag_results": [],
             "hint": "",
+            "investigation_file": {},
             "primary_rag": {},
             "rag_context": "",
             "hint_count": hint_count,
@@ -715,13 +783,12 @@ def predict():
             "objective_id": objective_id,
             "last_interaction": last_interaction,
             "hint_level": 1,
-            "hint_passed": False,
-            "evaluation_reason": "",
         })
 
         scene = graph_result["scene"]
         rag_results = graph_result["rag_results"]
         hint = graph_result["hint"]
+        investigation_file = graph_result["investigation_file"]
         primary_rag = graph_result["primary_rag"]
         hint_level = graph_result["hint_level"]
 
@@ -740,36 +807,32 @@ def predict():
         print("RAG:", primary_rag.get("rag", ""))
         print("REFERENCE_ANSWER:", primary_rag.get("reference_answer", ""))
         print("HINT:", hint)
-        print("HINT_PASSED:", graph_result["hint_passed"])
-        print("EVALUATION_REASON:", graph_result["evaluation_reason"])
+        print("INVESTIGATION_FILE:", investigation_file)
 
-        return jsonify(
-            {
-                "area": area_id,
-                "objective": objective_id,
-                "last_interaction": last_interaction,
-                "hint_count": hint_count,
-                "play_time": play_time,
-                "area_stay_time": area_stay_time,
-                "hint_level": hint_level,
-                "scene": scene,
-                "matched_scene_type": primary_rag.get("scene_type", "unknown"),
-                "matched_score": primary_rag.get("score", 0.0),
-                "matched_reference_scene": primary_rag.get("scene", ""),
-                "rag": primary_rag.get("rag", ""),
-                "reference_answer": primary_rag.get("reference_answer", ""),
-                "hint": hint,
-                "rag_candidates": rag_results,
-                "langgraph_flow": [
-                    "analyze_image",
-                    "retrieve_rag",
-                    "decide_hint_level",
-                    "generate_hint",
-                ],
-                "hint_passed": graph_result["hint_passed"],
-                "evaluation_reason": graph_result["evaluation_reason"],
-            }
-        )
+        return jsonify({
+            "area": area_id,
+            "objective": objective_id,
+            "last_interaction": last_interaction,
+            "hint_count": hint_count,
+            "play_time": play_time,
+            "area_stay_time": area_stay_time,
+            "hint_level": hint_level,
+            "scene": scene,
+            "matched_scene_type": primary_rag.get("scene_type", "unknown"),
+            "matched_score": primary_rag.get("score", 0.0),
+            "matched_reference_scene": primary_rag.get("scene", ""),
+            "rag": primary_rag.get("rag", ""),
+            "reference_answer": primary_rag.get("reference_answer", ""),
+            "hint": hint,
+            "investigation_file": investigation_file,
+            "rag_candidates": rag_results,
+            "langgraph_flow": [
+                "analyze_image",
+                "retrieve_rag",
+                "decide_hint_level",
+                "generate_journal",
+            ],
+        })
 
     except Exception as e:
         print("ERROR:", str(e))
@@ -786,7 +849,6 @@ def test_rag():
             return jsonify({"error": "scene 값이 없습니다."}), 400
 
         scene = data["scene"]
-
         area_id = data.get("area_id", None)
 
         rag_results = retrieve_best_rag(
@@ -794,27 +856,26 @@ def test_rag():
             area_id=area_id,
             top_k=3,
         )
+
         primary_rag = select_primary_rag(rag_results)
 
-        return jsonify(
-            {
-                "scene": scene,
-                "matched_scene_type": primary_rag.get("scene_type", "unknown"),
-                "matched_score": primary_rag.get("score", 0.0),
-                "matched_reference_scene": primary_rag.get("scene", ""),
-                "rag": primary_rag.get("rag", ""),
-                "reference_answer": primary_rag.get("reference_answer", ""),
-                "hint_by_level": primary_rag.get("hint_by_level", {}),
-                "rag_candidates": rag_results,
-            }
-        )
+        return jsonify({
+            "scene": scene,
+            "matched_scene_type": primary_rag.get("scene_type", "unknown"),
+            "matched_score": primary_rag.get("score", 0.0),
+            "matched_reference_scene": primary_rag.get("scene", ""),
+            "rag": primary_rag.get("rag", ""),
+            "reference_answer": primary_rag.get("reference_answer", ""),
+            "hint_by_level": primary_rag.get("hint_by_level", {}),
+            "rag_candidates": rag_results,
+        })
 
     except Exception as e:
         print("ERROR:", str(e))
         return jsonify({"error": str(e)}), 500
 
 
-# 텍스트 장면으로 LangGraph 힌트 생성 테스트
+# 텍스트 장면으로 LangGraph 사건 일지 생성 테스트
 @app.route("/test_graph", methods=["POST"])
 def test_graph():
     try:
@@ -826,7 +887,6 @@ def test_graph():
         scene = data["scene"]
         hint_count = int(data.get("hint_count", 1))
         area_stay_time = float(data.get("area_stay_time", 0))
-
         area_id = data.get("area_id", None)
 
         rag_results = retrieve_best_rag(
@@ -840,29 +900,28 @@ def test_graph():
             area_stay_time=area_stay_time,
         )
 
-        hint, primary_rag, rag_context = generate_hint(
+        hint, investigation_file, primary_rag, rag_context = generate_journal(
             scene_text=scene,
             rag_results=rag_results,
             hint_level=hint_level,
+            hint_count=hint_count,
         )
 
-        return jsonify(
-            {
-                "scene": scene,
-                "hint_count": hint_count,
-                "area_stay_time": area_stay_time,
-                "hint_level": hint_level,
-                "matched_scene_type": primary_rag.get("scene_type", "unknown"),
-                "matched_score": primary_rag.get("score", 0.0),
-                "matched_reference_scene": primary_rag.get("scene", ""),
-                "rag": primary_rag.get("rag", ""),
-                "reference_answer": primary_rag.get("reference_answer", ""),
-                "hint_by_level": primary_rag.get("hint_by_level", {}),
-                "hint": hint,
-                "rag_candidates": rag_results,
-                "langgraph_note": "이미지 분석 없이 RAG, AI Director, Gemma 힌트 생성만 테스트합니다.",
-            }
-        )
+        return jsonify({
+            "scene": scene,
+            "hint_count": hint_count,
+            "area_stay_time": area_stay_time,
+            "hint_level": hint_level,
+            "matched_scene_type": primary_rag.get("scene_type", "unknown"),
+            "matched_score": primary_rag.get("score", 0.0),
+            "matched_reference_scene": primary_rag.get("scene", ""),
+            "rag": primary_rag.get("rag", ""),
+            "reference_answer": primary_rag.get("reference_answer", ""),
+            "hint": hint,
+            "investigation_file": investigation_file,
+            "rag_candidates": rag_results,
+            "langgraph_note": "이미지 분석 없이 RAG 검색과 사건 일지 생성을 테스트합니다.",
+        })
 
     except Exception as e:
         print("ERROR:", str(e))
@@ -872,6 +931,6 @@ def test_graph():
 if __name__ == "__main__":
     print(f"Using device: {device}")
     print(f"Loaded RAG docs: {len(rag_data)}")
-    print("LangGraph Flow: analyze_image -> retrieve_rag -> decide_hint_level -> generate_hint")
+    print("LangGraph Flow: analyze_image -> retrieve_rag -> decide_hint_level -> generate_journal")
     print("Server Start")
     app.run(host="0.0.0.0", port=5000)

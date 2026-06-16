@@ -1,45 +1,57 @@
+import json
 import torch
+
 from datasets import load_dataset
+
 from transformers import (
     AutoTokenizer,
     AutoModelForCausalLM,
     TrainingArguments,
     Trainer,
 )
+
 from peft import LoraConfig, get_peft_model
 
+
 MODEL_ID = "google/gemma-4-E2B-it"
-DATA_PATH = "lora_tutorial_hint_reasoning_policy.jsonl"
-OUTPUT_DIR = "gemma_hint_lora"
+DATA_PATH = "lora_hint.jsonl"
+OUTPUT_DIR = "gemma_journal_lora"
 
-MAX_LENGTH = 448
+MAX_LENGTH = 512
 
-SYSTEM_PROMPT = """너는 공포 퍼즐 게임의 주인공 추론형 독백을 생성한다.
+SYSTEM_PROMPT = """너는 공포 퍼즐 게임의 AI 사건 기록 시스템이다.
 
 반드시 지켜라:
-- 단순 감상문이 아니라 관찰을 바탕으로 추론한다.
-- 문장 구조는 '보이는 것 → 의심/추론' 형태로 만든다.
-- 정답을 직접 말하지 않는다.
+- 현재 장면과 RAG 정보만 근거로 사건 일지를 작성한다.
+- RAG에 없는 물체, 위치, 해결 방법을 만들지 않는다.
 - 행동 지시를 하지 않는다.
-- '~하자', '~해야 한다', '~봐야 한다'를 쓰지 않는다.
-- RAG에 없는 물체나 해결 방법을 만들지 않는다.
-- 한 문장만 출력한다.
+- 관찰은 화면에서 보이는 사실 중심으로 쓴다.
+- 추론은 관찰을 바탕으로 한 가능성으로 쓴다.
+- 결론은 플레이어가 기록한 짧은 판단처럼 쓴다.
+- hint는 인게임에 바로 출력할 짧은 주인공 독백 한 문장으로 쓴다.
+- 반드시 JSON만 출력한다.
+- JSON 키는 title, observation, reasoning, conclusion, hint만 사용한다.
 
-좋은 예:
-'문 옆의 장치를 보면... 그냥 열 수 있는 문은 아닌 것 같다.'
-'피가 이렇게 튄 걸 보면... 단순한 사고는 아닌 것 같다.'
-'책상 주변에 물건들이 흩어져 있다... 뭔가 남아 있을지도 모른다.'
+좋은 출력:
+{
+  "title": "의문의 시체",
+  "observation": "바닥에 한 명의 사람이 쓰러져 있고 주변에 핏자국이 남아 있다.",
+  "reasoning": "단순히 넘어진 것이 아니라 누군가에게 공격받은 흔적처럼 보인다.",
+  "conclusion": "이곳에서 이미 위험한 일이 벌어진 것 같다.",
+  "hint": "저 사람... 그냥 쓰러진 건 아닌 것 같다."
+}
 
-나쁜 예:
-'이건 단순한 사고가 아니다.'
-'이곳은 기분 나쁘다.'
-'책상을 조사해보자.'
-'키카드를 찾아야 한다.'"""
+나쁜 출력:
+책상을 조사해보자.
+키카드를 찾아야 한다.
+RAG에 없는 괴물이 근처에 있다.
+"""
+
 
 DEFAULT_REASONING_POLICY = (
-    "기준 독백의 의미를 유지한다. "
+    "RAG 정보의 의미를 유지한다. "
     "새 물체, 해결 방법, 행동 지시를 추가하지 않는다. "
-    "짧고 불안한 주인공 독백으로 한 문장만 출력한다."
+    "관찰, 추론, 결론, 힌트를 서로 다른 역할로 작성한다."
 )
 
 
@@ -56,13 +68,13 @@ def build_prompt(scene, rag, reference_answer, reasoning_policy=None):
 [RAG 정보]
 {rag}
 
-[기준 독백]
+[기준 힌트]
 {reference_answer}
 
 [추론 규칙]
 {reasoning_policy}
 
-기준 독백과 같은 의미의 새로운 주인공 독백을 한 문장으로 출력하라.<end_of_turn>
+현재 장면을 바탕으로 사건 일지를 JSON 형식으로 출력하라.<end_of_turn>
 <start_of_turn>model
 """
 
@@ -141,7 +153,7 @@ def main():
         lora_dropout=0.05,
         bias="none",
         task_type="CAUSAL_LM",
-    )   
+    )
 
     model = get_peft_model(model, lora_config)
 
@@ -150,19 +162,22 @@ def main():
     model.print_trainable_parameters()
 
     def tokenize(example):
-        scene = example["scene"]
-        rag = example["rag"]
-        reference_answer = example["reference_answer"]
-        reasoning_policy = example.get("reasoning_policy", DEFAULT_REASONING_POLICY)
-
         prompt = build_prompt(
-            scene=scene,
-            rag=rag,
-            reference_answer=reference_answer,
-            reasoning_policy=reasoning_policy,
+            scene=example["scene"],
+            rag=example["rag"],
+            reference_answer=example["reference_answer"],
+            reasoning_policy=example.get("reasoning_policy", DEFAULT_REASONING_POLICY),
         )
 
-        answer = example["answer"].strip() + tokenizer.eos_token
+        answer_obj = {
+            "title": example["title"],
+            "observation": example["observation"],
+            "reasoning": example["reasoning"],
+            "conclusion": example["conclusion"],
+            "hint": example["hint"],
+        }
+
+        answer = json.dumps(answer_obj, ensure_ascii=False) + tokenizer.eos_token
 
         prompt_ids = tokenizer(
             prompt,
@@ -214,9 +229,11 @@ def main():
     output.loss.backward()
 
     found_grad = False
+
     for name, param in model.named_parameters():
         if param.requires_grad:
             grad_sum = 0.0 if param.grad is None else param.grad.abs().sum().item()
+
             if grad_sum > 0:
                 print("GRAD CHECK OK:", name, grad_sum)
                 found_grad = True
@@ -231,8 +248,8 @@ def main():
         output_dir=OUTPUT_DIR,
         per_device_train_batch_size=1,
         gradient_accumulation_steps=8,
-        learning_rate=8e-5,
-        num_train_epochs=3,
+        learning_rate=6e-5,
+        num_train_epochs=2,
         logging_steps=1,
         save_strategy="epoch",
         save_total_limit=1,
